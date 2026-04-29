@@ -32,22 +32,24 @@ sudo make uninstall-yes      # 实跑且跳过确认（CI / 批量用）
 
 ---
 
-## 阶段细节
+## 阶段细节（240 实测，优化版 v2）
 
 ```
-u00-preflight              ~5s    确认 + dry-run 设置
-u10-stop-services          ~10s   停服务
-u20-backup-data            ~30s   pg_dump + mongodump 到 /var/backups/
-u30-purge-apt              ~2 min apt purge cape 装的所有包
-u40-remove-files           ~5s    rm /opt/CAPEv2 等
-u50-remove-systemd-units   ~2s    rm /lib/systemd/system/cape*.service
-u60-revert-system-config   ~5s    sed /etc/sysctl.conf 等
-u70-remove-users           ~3s    userdel -r cape, userdel -r mongodb
-u80-clean-cron             ~2s    crontab 过滤
-u99-verify                 ~5s    残留检查
+u00-preflight              ~0s    确认 + dry-run 设置
+u10-stop-services          ~2s    批量 systemctl stop/disable + 不停 db
+u20-backup-data            ~0s    pg_dump cape 库（无 mongo 用户库时跳过 mongodump）
+u30-purge-apt              ~14s   apt purge 45 个包（apt 固有耗时）
+u40-remove-files           ~1s    rm /opt/CAPEv2 等
+u50-remove-systemd-units   ~0s    rm /lib/systemd/system/cape*.service
+u60-revert-system-config   ~0s    sed /etc/sysctl.conf / sources.list / sudoers / etc
+u70-remove-users           ~0s    userdel mongodb (UID<1000)，cape 守卫保护
+u80-clean-cron             ~0s    crontab 过滤
+u99-verify                 ~1s    残留检查 + 自动 stage timing summary
 ─────────────────────────────────────────
-合计                       ~3 min
+合计                       ~17s   (老版 ~31s，本版 -45%)
 ```
+
+实际耗时 vary 于：mongo 用户库大小（u20 mongodump）、apt 缓存命中率（u30）、磁盘写入速度（u40 rm 大目录）。240 上 cape 库基本是空的，所以 u20 几乎不耗时；mongo 没用户库则跳过 mongodump。
 
 ---
 
