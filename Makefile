@@ -6,9 +6,14 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eEuo pipefail -c
 
-# 必须 root
+# 这些 target 不需要 root（看帮助 / 清日志 / 预演）
+NONROOT_TARGETS := help clean uninstall-dry
+
+# 仅当 MAKECMDGOALS 全部都不在豁免列表里时才强制 root
+ifneq ($(filter-out $(NONROOT_TARGETS),$(MAKECMDGOALS)),)
 ifneq ($(shell id -u),0)
 $(error 必须 sudo 运行：sudo make $(MAKECMDGOALS))
+endif
 endif
 
 # 加载用户参数（SUBNET / DB_PASSWORD），不存在就用 sample 默认
@@ -33,7 +38,19 @@ STAGES := \
   51-anti-vm-seabios \
   99-smoke-test
 
-.PHONY: all clean help force-% $(STAGES)
+UNINSTALL_STAGES := \
+  u00-preflight \
+  u10-stop-services \
+  u20-backup-data \
+  u30-purge-apt \
+  u40-remove-files \
+  u50-remove-systemd-units \
+  u60-revert-system-config \
+  u70-remove-users \
+  u80-clean-cron \
+  u99-verify
+
+.PHONY: all clean help force-% uninstall uninstall-dry uninstall-yes $(STAGES) $(UNINSTALL_STAGES)
 
 all: $(STAGES)
 
@@ -48,6 +65,29 @@ all: $(STAGES)
 51-anti-vm-seabios:  50-anti-vm-qemu    ; bash scripts/51-anti-vm-seabios.sh
 99-smoke-test:       51-anti-vm-seabios ; bash scripts/99-smoke-test.sh
 
+# ----- 卸载 stage -----
+# uninstall 串行 u00→u99，每步独立（不强加 .PHONY 依赖，u30 失败 u40 仍跑）
+uninstall: $(UNINSTALL_STAGES)
+
+# 预演（不动）。target-specific export 保证子 stage 都看到 DRY_RUN=1
+uninstall-dry: export DRY_RUN := 1
+uninstall-dry: $(UNINSTALL_STAGES)
+
+# 跳过确认 prompt
+uninstall-yes: export YES := 1
+uninstall-yes: $(UNINSTALL_STAGES)
+
+u00-preflight:               ; bash scripts/u00-preflight.sh
+u10-stop-services:           ; bash scripts/u10-stop-services.sh
+u20-backup-data:             ; bash scripts/u20-backup-data.sh
+u30-purge-apt:               ; bash scripts/u30-purge-apt.sh
+u40-remove-files:            ; bash scripts/u40-remove-files.sh
+u50-remove-systemd-units:    ; bash scripts/u50-remove-systemd-units.sh
+u60-revert-system-config:    ; bash scripts/u60-revert-system-config.sh
+u70-remove-users:            ; bash scripts/u70-remove-users.sh
+u80-clean-cron:              ; bash scripts/u80-clean-cron.sh
+u99-verify:                  ; bash scripts/u99-verify.sh
+
 # 强制重做某 stage（绕过幂等守卫）
 force-%:
 	FORCE=1 bash scripts/$*.sh
@@ -56,11 +96,20 @@ clean:
 	rm -rf logs/ state/
 
 help:
-	@echo "目标："
+	@echo "安装目标："
 	@echo "  sudo make all                 # 完整安装（~60-90 min）"
 	@echo "  sudo make <stage>             # 单步：00-preflight / 10-mirrors / ..."
 	@echo "  sudo make force-<stage>       # 强制重做（忽略幂等守卫）"
+	@echo ""
+	@echo "卸载目标："
+	@echo "  sudo make uninstall           # 全清卸载（含确认 prompt）"
+	@echo "  sudo make uninstall-dry       # 预演（DRY_RUN=1，不动任何东西）"
+	@echo "  sudo make uninstall-yes       # 跳过 prompt（CI/批量用）"
+	@echo "  sudo make u<NN>-<stage>       # 单步卸载：u30-purge-apt 等"
+	@echo ""
+	@echo "其他："
 	@echo "  make clean                    # 清空 logs/ state/"
 	@echo ""
 	@echo "Stage 列表："
-	@$(foreach s,$(STAGES),echo "  $(s)";)
+	@$(foreach s,$(STAGES),echo "  install:   $(s)";)
+	@$(foreach s,$(UNINSTALL_STAGES),echo "  uninstall: $(s)";)

@@ -80,6 +80,18 @@ sudo make force-50-anti-vm-qemu
 make clean
 ```
 
+## 卸载
+
+详见 [docs/UNINSTALL.md](docs/UNINSTALL.md)。
+
+```bash
+sudo make uninstall-dry      # 先预演（推荐）
+sudo make uninstall          # 实跑（要求输入 yes 确认）
+sudo make uninstall-yes      # 实跑跳过确认
+```
+
+卸载会**自动 pg_dump + mongodump** 到 `/var/backups/cape-uninstall-<TS>.{sql,mongo}`，不丢数据。完整范围：停服务 → apt purge 所有相关包 → rm 数据目录 → 还原 sysctl/sudoers/pip 镜像/git insteadOf 等系统改动 → 删 cape/mongodb 用户 → 清 cron。
+
 ---
 
 ## 装完 host 栈之后还差什么（Phase C）
@@ -102,8 +114,9 @@ make clean
 |---|---|
 | `README.md` | 本文，起步指南 |
 | `docs/INSTALL.md` | 详细步骤手册（每个 stage 做了什么、怎么手动验证） |
+| `docs/UNINSTALL.md` | 卸载手册（10 个 u-stage 详解 + 备份恢复） |
 | `docs/TROUBLESHOOTING.md` | 已知问题 + 故障排查指引 |
-| `docs/WHY.md` | 13 个关键设计决策（ADR） |
+| `docs/WHY.md` | 13 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---
 

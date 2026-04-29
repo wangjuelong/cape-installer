@@ -115,3 +115,29 @@ gh_url() {
     echo "$1"
   fi
 }
+
+# ===== DRY_RUN 包装（卸载脚本用）=====
+# DRY_RUN=1 时只打印不执行；否则正常执行。
+# 用法: run rm -rf /opt/CAPEv2     ← 简单命令
+#       run apt-get purge -y mongodb-org
+# 注意：需要 shell 特性（管道 / heredoc / 重定向）的复杂命令请直接用
+#       `if [ "$DRY_RUN" != "1" ]; then ... ; fi` 包裹，run 不替你做 eval。
+run() {
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    printf '%s[DRY-RUN]%s %s\n' "$C_YLW" "$C_RST" "$*" >&2
+    return 0
+  fi
+  "$@"
+}
+
+# 同 run，但失败时不传播（卸载是 best-effort，单步失败不阻塞剩余清理）
+run_or_warn() {
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    printf '%s[DRY-RUN]%s %s\n' "$C_YLW" "$C_RST" "$*" >&2
+    return 0
+  fi
+  if ! "$@"; then
+    printf '%s[!]%s 命令失败但继续: %s\n' "$C_YLW" "$C_RST" "$*" >&2
+    return 0
+  fi
+}

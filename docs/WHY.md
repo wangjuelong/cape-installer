@@ -317,6 +317,39 @@ cape-installer 的设计是 2026-04-28 brainstorming 13 个 Q&A 的产物。
 
 community.py 60s 超时跳过的 patch（写脚本时凭 234 经验加的）在 240 上验证有效——避免了 21 分钟卡死。
 
+## ADR-Uninstall：一键卸载（2026-04-29 追加）
+
+**上下文**：cape-installer 改动了主机大量系统状态（apt 包、systemd unit、sysctl、limits、sudoers、pip 镜像、git insteadOf、3 个用户、cron、/data 数据目录）。手动卸载难以保证清干净，会留下半残状态。
+
+**选择**：**Scope C 全清** + 默认行为（自动 pg_dump/mongodump、`--yes` 跳确认、`--dry-run` 预演）+ 镜像安装风格的 10 个 `u00`-`u99` stage 脚本。
+
+**备选**：
+- A 轻量（只删 /opt/CAPEv2，保留 apt 包） — 用例窄
+- B 常规（A + apt purge，但保留 sysctl/limits 注入） — 半干净状态难维护
+- D 核弹（C + 自动重启） — 用户不一定接受
+
+**理由**：
+- C 是"回到几乎纯净 Ubuntu"的最干净状态，给批量部署后清场最省心
+- 自动备份兜底（`/var/backups/cape-uninstall-<TS>.{sql,mongo}`）让"误删"代价降到可恢复
+- DRY_RUN 解决"我怕跑错"的心理障碍
+- 镜像安装风格让 "u30 失败可单独重跑" 等运维操作直觉化
+- 镜像 `Makefile` 模式：`force-<stage>` 不需要（卸载默认就是幂等的，重跑只是空操作）
+
+**影响**：
+- 新增 10 个 stage 脚本（`u00`-`u99`）
+- `Makefile` 增加 `uninstall` / `uninstall-dry` / `uninstall-yes` target
+- `lib/common.sh` 加 `run` 和 `run_or_warn`（DRY_RUN 包装）
+- 新增 `docs/UNINSTALL.md`
+- `Makefile` root 检查改成对 `help`/`clean`/`uninstall-dry` 豁免
+
+**已知边界**：
+- sysctl 改动 sed 删了 `/etc/sysctl.conf` 里的行，但**当前内核运行时**值不会回滚 → u99 提示用户 reboot
+- `apparmor` 对 tcpdump 用 `aa-disable` 改过，u60 不强行 enforce 回去（怕影响别的进程）
+- 部分 `/etc/needrestart/needrestart.conf` 改动 best-effort 回退
+- /tmp 残留按知名命名清，没列全的会被系统 tmpfs 清空兜底
+
+---
+
 ## 后续可考虑的演进（非本次范围）
 
 - **Phase C**：Windows guest VM 自动化（unattended.xml + agent.py 自动注入 + 快照）
