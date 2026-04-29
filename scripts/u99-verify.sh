@@ -13,9 +13,23 @@ ok()  { echo "  [✓] $*"; }
 
 echo "==== 残留检查 ===="
 
-# ---- 1. 用户 ----
-if id cape >/dev/null 2>&1; then note "用户 cape 仍存在"; else ok "用户 cape 已删"; fi
-if id mongodb >/dev/null 2>&1; then note "用户 mongodb 仍存在"; else ok "用户 mongodb 已删"; fi
+# ---- 1. 用户（UID >= 1000 是登录用户，u70 守卫故意保护，不算残留）----
+check_user() {
+  local u=$1
+  if ! id "$u" >/dev/null 2>&1; then
+    ok "用户 $u 已删"
+    return
+  fi
+  local uid
+  uid=$(id -u "$u")
+  if [ "$uid" -lt 1000 ]; then
+    note "系统用户 $u (UID=$uid) 仍存在 — u70 应当删而没删"
+  else
+    ok "用户 $u 保留 (UID=$uid 登录用户，u70 守卫保护)"
+  fi
+}
+check_user cape
+check_user mongodb
 
 # ---- 2. 关键路径 ----
 for p in /opt/CAPEv2 /etc/poetry /data/db /data/configdb /var/lib/postgresql /var/lib/mongodb; do

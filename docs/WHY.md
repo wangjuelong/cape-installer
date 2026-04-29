@@ -348,6 +348,11 @@ community.py 60s 超时跳过的 patch（写脚本时凭 234 经验加的）在 
 - 部分 `/etc/needrestart/needrestart.conf` 改动 best-effort 回退
 - /tmp 残留按知名命名清，没列全的会被系统 tmpfs 清空兜底
 
+**240 上的卸载验证发现（2026-04-29）**：
+1. **u70 自删登录用户**（**严重**）：旧版 u70 无差别 `userdel -r cape`。但 240 的 cape 是 UID 1000 的 OS 登录用户（不是 cape2.sh 系统用户），删了 `/home/cape` 里的 SSH key → 锁死 240 SSH。修复：u70 加 `UID < 1000` 守卫，OS 登录用户跳过；u00 在 `SUDO_USER` 是即将被删的用户时打警告。
+2. **u30 dpkg-query 在 set -E 下因未匹配 pattern 触发 ERR trap**（中等）：`set +e` 不抑制 ERR trap，得显式 `|| true`。修复：`list_installed()` 包装函数显式 `|| true`。
+3. **240 在 uninstall 中重启**（待复盘）：完整跑 uninstall-yes 后 ping 不通，疑似 apt autoremove 顺手 purge 了某 init 关键包，或 systemd 被改坏导致 reboot。等机器回来再现场看。
+
 ---
 
 ## 后续可考虑的演进（非本次范围）

@@ -44,6 +44,28 @@ DRY-RUN 模式可预演："DRY_RUN=1 sudo make uninstall"
 
 EOF
 
+# ---- 自删用户预警（240 验证踩过的坑）----
+# 如果 sudo 调用者就是即将被 u70 处理的用户，提示一下。
+# u70 已加了 UID >= 1000 的安全门，但仍要让用户知晓。
+if [ -n "${SUDO_USER:-}" ]; then
+  for u in cape mongodb; do
+    if [ "$SUDO_USER" = "$u" ]; then
+      uid=$(id -u "$u" 2>/dev/null || echo 99999)
+      if [ "$uid" -lt 1000 ]; then
+        cat <<WARN
+
+[!!!] 当前 sudo 调用者 = '$u' (UID=$uid) 是 cape2.sh 系统用户。
+      u70 会删它 → SSH 会话可能在卸载途中断开 → 你可能进不来这台机器！
+      建议先以 root 或另一个 sudoer 身份登录再跑卸载。
+
+WARN
+      else
+        printf "[~] 当前 sudo 调用者 = '%s' (UID=%d) 是 OS 登录用户，u70 守卫将保护它不被删。\n\n" "$u" "$uid"
+      fi
+    fi
+  done
+fi
+
 if [ "${YES:-0}" != "1" ] && [ "${DRY_RUN:-0}" != "1" ]; then
   exec </dev/tty 2>/dev/null || { echo "[-] 无 tty 且未带 YES=1，拒绝执行"; exit 1; }
   read -rp '输入 "yes" 确认继续，其他任何输入将取消: ' ans

@@ -40,22 +40,41 @@ declare -a PURGE_PATTERNS=(
   mitmproxy
 )
 
-echo "==== 待 purge 的包（已装的才会真正 purge）===="
+# !!! 240 验证踩到的坑 !!!
+# 直接 `apt-get purge -y pat1 pat2 ...` 在任何一个 pat 不存在时**整批拒绝**。
+# 比如 deb.torproject.org-keyring 没装 → 全部 22 个包都跳过 → mongodb 等仍在系统里。
+# 解决：先用 dpkg-query 把每个 pattern 实际装着的具体包名展开成 TO_PURGE 数组，
+# 再一次性 apt-get purge —— 全是真包，不会触发 "Unable to locate package" 整批失败。
+
+list_installed() {
+  dpkg-query -W -f='${Package}\n' "$1" 2>/dev/null || true
+}
+
+declare -a TO_PURGE=()
+echo "==== 收集已装的目标包 ===="
 for p in "${PURGE_PATTERNS[@]}"; do
-  matches=$(dpkg-query -W -f='${Package}\n' "$p" 2>/dev/null | head -10)
-  if [ -n "$matches" ]; then
-    echo "  $p:"
-    echo "$matches" | sed 's/^/    /'
-  fi
+  while IFS= read -r pkg; do
+    [ -n "$pkg" ] && TO_PURGE+=("$pkg")
+  done < <(list_installed "$p")
 done
 
-# apt purge 一波（DEBIAN_FRONTEND=noninteractive 防 dialog 卡住）
-run env DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove "${PURGE_PATTERNS[@]}" 2>&1 | tail -30
+# 去重（同一个包可能被多个 pattern 匹中）
+if [ ${#TO_PURGE[@]} -gt 0 ]; then
+  readarray -t TO_PURGE < <(printf '%s\n' "${TO_PURGE[@]}" | sort -u)
+  echo "  实际待 purge ${#TO_PURGE[@]} 个包："
+  printf '    %s\n' "${TO_PURGE[@]}"
+else
+  echo "  没有任何 cape 相关 apt 包仍在系统中"
+fi
+
+if [ ${#TO_PURGE[@]} -gt 0 ]; then
+  run_or_warn env DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove "${TO_PURGE[@]}"
+fi
 
 # 再一遍 autoremove + purge 残留（孤儿依赖）
-run env DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y 2>&1 | tail -10
+run_or_warn env DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
 
 # apt 缓存
-run apt-get clean
+run_or_warn apt-get clean
 
 stage_done

@@ -1121,10 +1121,27 @@ function dependencies() {
         echo "[+] Installing uv"
         curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh
     else
-        curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 -
+        # PATCH (cape-installer): 上游 install.python-poetry.org 走 Fastly，
+        # 中国网络极易在握手后无数据流的状态下卡 20+ 分钟。改成：
+        # (a) 优先用 TUNA PyPI 直接 pip install poetry 进 /etc/poetry 的 venv
+        # (b) 失败再回退到上游官方 installer（带 timeout 防卡死）
+        if [ -x /etc/poetry/bin/poetry ]; then
+            echo "[cape-installer] /etc/poetry/bin/poetry 已存在，跳过安装"
+        else
+            apt-get install -y python3-venv >/dev/null 2>&1 || true
+            python3 -m venv /etc/poetry
+            if /etc/poetry/bin/pip install --quiet --no-cache-dir 'poetry==2.3.4'; then
+                echo "[cape-installer] poetry 2.3.4 已通过 TUNA PyPI 装入 /etc/poetry"
+            else
+                echo "[cape-installer] TUNA 装 poetry 失败，回退到上游 installer (180s 超时)"
+                rm -rf /etc/poetry
+                timeout 180 curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 - || \
+                  { echo "[-] poetry 装不上"; exit 1; }
+            fi
+        fi
         echo "PATH=$PATH:/etc/poetry/bin/" >> /etc/bash.bashrc
         export PATH=$PATH:/etc/poetry/bin/
-        poetry self add poetry-plugin-shell
+        /etc/poetry/bin/poetry self add poetry-plugin-shell || true
     fi
 
     sudo apt-get install -y locate && sudo updatedb # used by install_libvirt

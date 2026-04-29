@@ -143,6 +143,18 @@ sudo sysctl -p /etc/sysctl.conf
 
 ## 故障排查
 
+### ⚠️ "卸载完后 SSH 进不去 240 了！"
+
+**原因**：旧版 u70 不分青红皂白删 `cape` 用户，连同 `/home/cape`（包含 SSH key + history）。如果你登录目标机的 SSH 用户**正好叫 cape**（很常见，比如 OS 安装时建的就叫 cape），uninstall 会**自删登录用户**，SSH 永久断。
+
+**当前版本已修复**：u70 现在只删 `UID < 1000` 的系统用户。OS 登录用户（UID ≥ 1000）会被跳过并打印 `[SKIP] user cape (UID=1000 ≥ 1000) — 看起来是常规登录用户而非 cape2.sh 系统用户，拒绝删除`。
+
+**如果你遭遇了旧版本 240 那种锁死状况**：
+1. 物理/虚拟机控制台进 240（不依赖 SSH）
+2. 用 `sudo`-able 的另一用户 / root 登录
+3. `useradd -m -s /bin/bash cape && passwd cape && usermod -aG sudo cape`
+4. 重新 SSH 进
+
 ### `userdel: cape mail spool (...) not found`
 
 **无害警告**：cape 没用过 mail，没有 spool 文件可删。继续。
