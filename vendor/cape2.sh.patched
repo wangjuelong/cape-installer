@@ -1591,9 +1591,20 @@ function install_volatility3() {
     fi
 
     cd $vol_path || return
-    wget https://downloads.volatilityfoundation.org/volatility3/symbols/windows.zip -O windows.zip
-    unzip -o windows.zip
-    rm windows.zip
+    # PATCH (cape-installer): downloads.volatilityfoundation.org 在中国非常慢
+    # （实测 240 上 8-15 KB/s，21+ 小时 ETA），且 windows.zip 仅在 Windows guest
+    # 内存取证时才需要。Phase B 范围（无 guest）不必装。
+    # 想用时手动跑：
+    #   cd /opt/CAPEv2/.venv/lib/python3.12/site-packages/volatility3/symbols
+    #   wget https://downloads.volatilityfoundation.org/volatility3/symbols/windows.zip
+    #   unzip windows.zip && rm windows.zip
+    if [ "${VOL_SYMBOLS:-skip}" = "fetch" ]; then
+        timeout 1800 wget https://downloads.volatilityfoundation.org/volatility3/symbols/windows.zip -O windows.zip \
+          && unzip -o windows.zip && rm windows.zip
+    else
+        echo "[!] 跳过 volatility3 windows symbols（21+h ETA from 中国）。"
+        echo "    需要时手动 wget 到 $vol_path/windows.zip 再 unzip。"
+    fi
     chown "${USER}:${USER}" $vol_path -R
 }
 

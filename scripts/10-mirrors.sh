@@ -53,6 +53,29 @@ if [ -f /etc/apt/apt.conf.d/90curtin-aptproxy ]; then
   echo "[✓] 禁用 90curtin-aptproxy"
 fi
 
+# ---- 切 OS apt 主仓库到 TUNA（240 实测：cn.archive 15 B/s vs TUNA 11.8 MB/s）----
+# Ubuntu 24.04 用新版 deb822 格式：/etc/apt/sources.list.d/ubuntu.sources
+UBUNTU_SOURCES=/etc/apt/sources.list.d/ubuntu.sources
+if [ -f "$UBUNTU_SOURCES" ] && grep -qE 'cn\.archive\.ubuntu\.com|security\.ubuntu\.com' "$UBUNTU_SOURCES"; then
+  cp "$UBUNTU_SOURCES" "${UBUNTU_SOURCES}.bak"
+  sed -i \
+    -e 's|http://cn\.archive\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    -e 's|http://archive\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    -e 's|http://security\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    "$UBUNTU_SOURCES"
+  echo "[✓] /etc/apt/sources.list.d/ubuntu.sources → 清华 TUNA"
+fi
+# 旧版 sources.list 也兜底（cloud-init 不一定用新版）
+if [ -f /etc/apt/sources.list ] && grep -qE 'cn\.archive\.ubuntu\.com|security\.ubuntu\.com' /etc/apt/sources.list; then
+  cp /etc/apt/sources.list /etc/apt/sources.list.bak
+  sed -i \
+    -e 's|http://cn\.archive\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    -e 's|http://archive\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    -e 's|http://security\.ubuntu\.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' \
+    /etc/apt/sources.list
+  echo "[✓] /etc/apt/sources.list → 清华 TUNA"
+fi
+
 # ---- apt-get update（让新源生效；retry 3 次防瞬断）----
 retry 3 5 apt-get update -qq
 

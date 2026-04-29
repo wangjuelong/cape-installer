@@ -40,6 +40,14 @@ if [ -f /etc/apt/apt.conf.d/90curtin-aptproxy.disabled ] \
   echo "  [restored] /etc/apt/apt.conf.d/90curtin-aptproxy"
 fi
 
+# 还原 ubuntu.sources（10-mirrors 切到了 TUNA 镜像）
+for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+  if [ -f "${f}.bak" ] && [ -f "$f" ]; then
+    run mv "${f}.bak" "$f"
+    echo "  [restored] $f"
+  fi
+done
+
 # 删 apt preferences pin（kvm-qemu.sh 写的）
 remove /etc/apt/preferences.d/cape
 
