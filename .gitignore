@@ -1,0 +1,15 @@
+# 用户运行时配置（含密码）— 不入库
+config.env
+
+# 脚本运行时产出的状态和日志
+logs/
+state/
+
+# Claude Code 会话数据
+.claude/
+
+# 编辑器残留
+.DS_Store
+._*
+*~
+*.swp

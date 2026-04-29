@@ -1,0 +1,9 @@
+# cape-installer：追加到 /opt/CAPEv2/pyproject.toml 末尾
+# 让 poetry 走清华 PyPI 镜像（决策 Q4 / Q9）。
+# 由 scripts/20-host-stack.sh 在 git clone CAPE 后用 cat >> 写入。
+# 幂等：脚本会先 grep -q 'name = "tuna"' 判断是否已加。
+
+[[tool.poetry.source]]
+name = "tuna"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+priority = "primary"
