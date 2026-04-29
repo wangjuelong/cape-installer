@@ -26,17 +26,18 @@ cat <<EOF
 ================================================================
                     !!!  危险操作警告  !!!
 ----------------------------------------------------------------
-即将卸载 CAPEv2 + 所有相关组件，执行以下不可逆操作：
+即将卸载 CAPEv2 + 所有相关组件（预计耗时 ~30s），执行以下不可逆操作：
 
-  1. 停止并禁用：cape*, mongodb, postgresql, suricata, libvirtd
-  2. 备份 PostgreSQL 'cape' 库到 /var/backups/cape-uninstall-<TS>.sql
+  1. 停应用服务（cape*/suricata/libvirtd）；mongo/pg 留给 u20 备份
+  2. 备份 PostgreSQL 'cape' 库 + MongoDB 用户库到
+     /var/backups/cape-uninstall-<TS>.{sql,mongo}
   3. apt purge: mongodb-org / postgresql-18 / suricata / yara /
-     qemu* / libvirt* / tor （连同它们的 OS 数据）
+     qemu* / libvirt* / tor / mitmproxy（连同 OS 数据）
   4. rm -rf：/opt/CAPEv2 /etc/poetry /data /opt/PolarProxy
-              /opt/mitmproxy /var/lib/postgresql /var/lib/mongodb
-  5. 删除 systemd unit、sysctl/limits/sudoers 修改、apt 镜像配置、
+              /opt/mitmproxy /var/lib/{postgresql,mongodb,suricata}
+  5. 删 systemd unit、sysctl/limits/sudoers 修改、apt 镜像配置、
      git insteadOf、apt sources、GPG keyrings
-  6. 删除用户：cape（连同 /home/cape）、mongodb
+  6. 删用户：cape (UID<1000 守卫保护登录用户)、mongodb
   7. 清理 root crontab 里 cape2.sh 加的条目
 
 DRY-RUN 模式可预演："DRY_RUN=1 sudo make uninstall"

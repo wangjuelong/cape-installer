@@ -88,6 +88,24 @@ else
   echo "[!] 仍有 $LEFT 项残留 — 见上方 [✗] 行；可能需要手动清理或重启系统"
 fi
 
+# ---- stage 用时统计 ----
+echo ""
+echo "==== 各 stage 实际耗时 ===="
+total=0
+for f in "$LOGS_DIR"/u*.log; do
+  [ -f "$f" ] || continue
+  start=$(grep -oE '^=====[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}' "$f" | head -1 | awk '{print $2}')
+  end=$(grep -oE '^=====[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}' "$f" | tail -1 | awk '{print $2}')
+  if [ -n "$start" ] && [ -n "$end" ]; then
+    s=$(date -d "$start" +%s 2>/dev/null || echo 0)
+    e=$(date -d "$end" +%s 2>/dev/null || echo 0)
+    diff=$((e - s))
+    total=$((total + diff))
+    printf '  %-32s %3ds\n' "$(basename "$f" .log)" "$diff"
+  fi
+done
+printf '  %-32s %3ds\n' "(合计)" "$total"
+
 # 提示重启
 echo ""
 echo "建议：sudo reboot   # 让 sysctl 改动彻底失效"
