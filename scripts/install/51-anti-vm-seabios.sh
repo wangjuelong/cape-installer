@@ -3,7 +3,7 @@
 # - GitHub archive 在中国可达
 # - 跑 kvm-qemu.sh.patched seabios（patch + 编 + 替换 /usr/share/qemu/bios.bin）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 source "$REPO_ROOT/vendor/checksums.sh"
 stage_init "51-anti-vm-seabios"
 

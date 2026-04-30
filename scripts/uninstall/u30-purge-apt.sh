@@ -5,7 +5,7 @@
 #   - de4dot                          ← cape2.sh dependencies
 #   - passivedns（如有）              ← cape2.sh passivedns（不在 all 里）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u30-purge-apt"
 
 # 用一组 glob 模式而非字面包名，apt 会展开。

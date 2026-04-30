@@ -55,15 +55,15 @@ UNINSTALL_STAGES := \
 all: $(STAGES)
 
 # ----- 各 stage 串行依赖 -----
-00-preflight:        ; bash scripts/00-preflight.sh
-10-mirrors:          00-preflight       ; bash scripts/10-mirrors.sh
-20-host-stack:       10-mirrors         ; bash scripts/20-host-stack.sh
-30-poetry-fix:       20-host-stack      ; bash scripts/30-poetry-fix.sh
-31-cape-config:      30-poetry-fix      ; bash scripts/31-cape-config.sh
-40-kvm-libvirt:      31-cape-config     ; bash scripts/40-kvm-libvirt.sh
-50-anti-vm-qemu:     40-kvm-libvirt     ; bash scripts/50-anti-vm-qemu.sh
-51-anti-vm-seabios:  50-anti-vm-qemu    ; bash scripts/51-anti-vm-seabios.sh
-99-smoke-test:       51-anti-vm-seabios ; bash scripts/99-smoke-test.sh
+00-preflight:        ; bash scripts/install/00-preflight.sh
+10-mirrors:          00-preflight       ; bash scripts/install/10-mirrors.sh
+20-host-stack:       10-mirrors         ; bash scripts/install/20-host-stack.sh
+30-poetry-fix:       20-host-stack      ; bash scripts/install/30-poetry-fix.sh
+31-cape-config:      30-poetry-fix      ; bash scripts/install/31-cape-config.sh
+40-kvm-libvirt:      31-cape-config     ; bash scripts/install/40-kvm-libvirt.sh
+50-anti-vm-qemu:     40-kvm-libvirt     ; bash scripts/install/50-anti-vm-qemu.sh
+51-anti-vm-seabios:  50-anti-vm-qemu    ; bash scripts/install/51-anti-vm-seabios.sh
+99-smoke-test:       51-anti-vm-seabios ; bash scripts/install/99-smoke-test.sh
 
 # ----- 卸载 stage -----
 # uninstall 串行 u00→u99，每步独立（不强加 .PHONY 依赖，u30 失败 u40 仍跑）
@@ -77,20 +77,28 @@ uninstall-dry: $(UNINSTALL_STAGES)
 uninstall-yes: export YES := 1
 uninstall-yes: $(UNINSTALL_STAGES)
 
-u00-preflight:               ; bash scripts/u00-preflight.sh
-u10-stop-services:           ; bash scripts/u10-stop-services.sh
-u20-backup-data:             ; bash scripts/u20-backup-data.sh
-u30-purge-apt:               ; bash scripts/u30-purge-apt.sh
-u40-remove-files:            ; bash scripts/u40-remove-files.sh
-u50-remove-systemd-units:    ; bash scripts/u50-remove-systemd-units.sh
-u60-revert-system-config:    ; bash scripts/u60-revert-system-config.sh
-u70-remove-users:            ; bash scripts/u70-remove-users.sh
-u80-clean-cron:              ; bash scripts/u80-clean-cron.sh
-u99-verify:                  ; bash scripts/u99-verify.sh
+u00-preflight:               ; bash scripts/uninstall/u00-preflight.sh
+u10-stop-services:           ; bash scripts/uninstall/u10-stop-services.sh
+u20-backup-data:             ; bash scripts/uninstall/u20-backup-data.sh
+u30-purge-apt:               ; bash scripts/uninstall/u30-purge-apt.sh
+u40-remove-files:            ; bash scripts/uninstall/u40-remove-files.sh
+u50-remove-systemd-units:    ; bash scripts/uninstall/u50-remove-systemd-units.sh
+u60-revert-system-config:    ; bash scripts/uninstall/u60-revert-system-config.sh
+u70-remove-users:            ; bash scripts/uninstall/u70-remove-users.sh
+u80-clean-cron:              ; bash scripts/uninstall/u80-clean-cron.sh
+u99-verify:                  ; bash scripts/uninstall/u99-verify.sh
 
 # 强制重做某 stage（绕过幂等守卫）
 force-%:
-	FORCE=1 bash scripts/$*.sh
+	@if [ -f scripts/install/$*.sh ]; then \
+	  FORCE=1 bash scripts/install/$*.sh; \
+	elif [ -f scripts/uninstall/$*.sh ]; then \
+	  FORCE=1 bash scripts/uninstall/$*.sh; \
+	elif [ -f scripts/guest/$*.sh ]; then \
+	  FORCE=1 bash scripts/guest/$*.sh; \
+	else \
+	  echo "未找到 stage: $*"; exit 1; \
+	fi
 
 clean:
 	rm -rf logs/ state/

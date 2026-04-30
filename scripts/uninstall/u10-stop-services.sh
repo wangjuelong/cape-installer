@@ -6,7 +6,7 @@
 #
 # suricata / libvirtd 没数据要备份，这里直接停。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u10-stop-services"
 
 # 把不会被 u20 用到的服务一次性 stop + disable + unmask。

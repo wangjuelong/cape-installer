@@ -8,7 +8,7 @@
 #   - 30 1 * * 0 ... cleaners.py --delete-unused-file-data-in-mongo
 #   - 00 */1 * * * (echo authenticate '...' ; signal newnym) | nc localhost 9051
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u80-clean-cron"
 
 # 用 grep -v 删；保留每条不含关键词的原行

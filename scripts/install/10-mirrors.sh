@@ -5,7 +5,7 @@
 # - /etc/sudoers.d/99-cape-mirror → env_keep 让 sudo 保留 PIP env
 # - /etc/apt/apt.conf.d/90curtin-aptproxy → 重命名为 .disabled
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "10-mirrors"
 
 # ---- 幂等守卫 ----

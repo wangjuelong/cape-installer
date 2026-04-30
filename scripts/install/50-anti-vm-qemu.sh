@@ -5,7 +5,7 @@
 # - 重打包成 qemu-9.2.2.tar.xz 让 kvm-qemu.sh 找到
 # - 跑 kvm-qemu.sh.patched qemu（应用 anti-VM clue 补丁，编译，dpkg 装）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 source "$REPO_ROOT/vendor/checksums.sh"
 stage_init "50-anti-vm-qemu"
 

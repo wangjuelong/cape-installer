@@ -5,7 +5,7 @@
 # 这里用 `poetry install --no-root` 接管。
 # 同时修复 /home/cape/.cache 和 .config 的 root-owner 问题（cape2.sh 早期阶段以 root 写过）。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "30-poetry-fix"
 
 CAPE_ROOT=/opt/CAPEv2

@@ -4,7 +4,7 @@
 # - kvm.conf machines = （空，Phase B 范围内不含 guest，cape 服务 mask）
 # - mask cape & cape-processor（无 guest 时它们必败重启刷日志）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "31-cape-config"
 
 CAPE_ROOT=/opt/CAPEv2

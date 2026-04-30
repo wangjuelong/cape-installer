@@ -288,7 +288,7 @@ cape-installer 的设计是 2026-04-28 brainstorming 13 个 Q&A 的产物。
 - C 是踩过的坑的最小集合（这次 import libvirt 失败 / virbr0 IP 不符 / Web UI 不响应都被覆盖）
 
 **影响**：
-- `scripts/99-smoke-test.sh` 有 7 个检查项
+- `scripts/install/99-smoke-test.sh` 有 7 个检查项
 - 任一失败 → exit 1，整个 `make all` 失败
 
 ---

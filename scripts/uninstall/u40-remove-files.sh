@@ -7,7 +7,7 @@
 # - /var/lib/{postgresql,mongodb} (apt purge 不一定带走的数据目录残留)
 # - /tmp 残留
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u40-remove-files"
 
 remove() {

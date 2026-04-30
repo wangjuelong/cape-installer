@@ -6,7 +6,7 @@
 # - 磁盘 ≥ 50G、内存 ≥ 16G
 # - GitHub / GitLab / 清华镜像都可达
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "00-preflight"
 
 # ---- OS 校验 ----

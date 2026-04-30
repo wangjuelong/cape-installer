@@ -8,7 +8,7 @@
 # cape2.sh 用 `useradd --system` 创建 cape 时 UID 自动分配为 < 1000；
 # 所以 UID 阈值是判断"该不该删"的黄金标准。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u70-remove-users"
 
 UID_THRESHOLD=1000

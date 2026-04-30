@@ -4,7 +4,7 @@
 # - 必须 Ubuntu noble
 # - 显示将要做什么 + 二次确认（YES=1 跳过、DRY_RUN=1 仅预演）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u00-preflight"
 
 [ "$(id -u)" = "0" ] || { echo "[-] 必须 root"; exit 1; }

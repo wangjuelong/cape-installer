@@ -3,7 +3,7 @@
 # 优化（v2）：u10 不再停 mongo/postgres → 此阶段服务通常已经 active →
 # 不需要 start/stop（节省 ~8 秒）。仅当服务确实不在跑时才临时启动。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u20-backup-data"
 
 TS=$(date +%Y%m%d-%H%M%S)

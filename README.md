@@ -373,19 +373,28 @@ cape-installer/
 ├── bootstrap.sh           # 入口：自动装 make 后调 make
 ├── config.env.sample      # 参数模板（SUBNET / DB_PASSWORD）
 ├── lib/common.sh          # 日志、retry、stage 包装、幂等 helper、gh_url、run/run_or_warn
-├── scripts/               # 9 个 install + 10 个 uninstall stage
-│   ├── 00-preflight.sh    51-anti-vm-seabios.sh
-│   ├── 10-mirrors.sh      99-smoke-test.sh
-│   ├── 20-host-stack.sh   u00-preflight.sh
-│   ├── 30-poetry-fix.sh   u10-stop-services.sh
-│   ├── 31-cape-config.sh  u20-backup-data.sh
-│   ├── 40-kvm-libvirt.sh  u30-purge-apt.sh
-│   ├── 50-anti-vm-qemu.sh u40-remove-files.sh
-│   │                      u50-remove-systemd-units.sh
-│   │                      u60-revert-system-config.sh
-│   │                      u70-remove-users.sh
-│   │                      u80-clean-cron.sh
-│   │                      u99-verify.sh
+├── scripts/
+│   ├── install/           # 9 个 install stage
+│   │   ├── 00-preflight.sh
+│   │   ├── 10-mirrors.sh
+│   │   ├── 20-host-stack.sh
+│   │   ├── 30-poetry-fix.sh
+│   │   ├── 31-cape-config.sh
+│   │   ├── 40-kvm-libvirt.sh
+│   │   ├── 50-anti-vm-qemu.sh
+│   │   ├── 51-anti-vm-seabios.sh
+│   │   └── 99-smoke-test.sh
+│   └── uninstall/         # 10 个 uninstall stage
+│       ├── u00-preflight.sh
+│       ├── u10-stop-services.sh
+│       ├── u20-backup-data.sh
+│       ├── u30-purge-apt.sh
+│       ├── u40-remove-files.sh
+│       ├── u50-remove-systemd-units.sh
+│       ├── u60-revert-system-config.sh
+│       ├── u70-remove-users.sh
+│       ├── u80-clean-cron.sh
+│       └── u99-verify.sh
 ├── vendor/                # 上游脚本快照 + 补丁 + 本地资产
 │   ├── cape2.sh.patched           # 5 处 hunk
 │   ├── kvm-qemu.sh.patched        # 版本快照

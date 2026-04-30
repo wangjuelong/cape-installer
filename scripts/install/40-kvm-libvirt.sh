@@ -5,7 +5,7 @@
 # - virsh net-autostart default + net-start default → virbr0 = ${SUBNET}.1/24
 # - 跑 vendor/cape2.sh.patched libvirt（pip install libvirt-python==11.9.0 进 cape venv）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "40-kvm-libvirt"
 
 SUBNET="${SUBNET:-192.168.122}"

@@ -10,7 +10,7 @@
 #   - /etc/modprobe.d/kvm.conf / /etc/udev/rules.d/50-qemu-kvm.rules
 #   - /etc/sleep.target /etc/suspend.target etc 还原（kvm-qemu.sh 把这些 mask 到 /dev/null）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u60-revert-system-config"
 
 remove() {

@@ -5,7 +5,7 @@
 #   - mongodb.service（cape2.sh 自定义版，不是 apt 自带的 mongod.service）
 #   - enable-transparent-huge-pages.service（cape2.sh 写的）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u50-remove-systemd-units"
 
 # /lib/systemd/system 下 cape2.sh 写入的

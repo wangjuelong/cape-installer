@@ -2,7 +2,7 @@
 # Stage 99-smoke-test：装完最终自检（决策 Q13=C：service + 网络 + import + virt-host-validate）
 # 不带幂等守卫——每次都跑（自检很快）。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "99-smoke-test"
 
 SUBNET="${SUBNET:-192.168.122}"

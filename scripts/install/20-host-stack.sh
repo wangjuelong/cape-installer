@@ -7,7 +7,7 @@
 #   注意：上游 buggy 的 `poetry pip install -r pyproject.toml` 已被我们注释掉，
 #         真正的 venv 由 stage 30 用 `poetry install` 接管。
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "20-host-stack"
 
 CAPE_ROOT=/opt/CAPEv2

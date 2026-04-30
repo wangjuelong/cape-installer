@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # u99-verify：卸载完成后清单核对，列出仍存在的残留（如有）
 
-source "${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}/lib/common.sh"
+source "${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}/lib/common.sh"
 stage_init "u99-verify"
 
 LEFT=0
