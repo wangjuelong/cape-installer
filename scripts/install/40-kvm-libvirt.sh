@@ -32,7 +32,8 @@ retry 3 5 apt-get install -y -qq \
   libvirt-dev \
   bridge-utils \
   virtinst \
-  dnsmasq
+  dnsmasq \
+  libxml2-utils
 
 # ---- 2. 起 libvirtd ----
 systemctl enable --now libvirtd virtlogd.socket

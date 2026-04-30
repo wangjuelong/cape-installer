@@ -83,7 +83,7 @@ ok 'VM 未运行'
 log '算 sha256'
 sha256_file="${QCOW2}.sha256"
 shasum -a 256 "$QCOW2" \
-  | awk -v f="$(basename "$QCOW2")" '{print $1"  "f}' \
+  | awk -v f="$(basename "$SERVER_PATH")" '{print $1"  "f}' \
   > "$sha256_file"
 hash=$(awk '{print $1}' "$sha256_file")
 ok "sha256: $hash"

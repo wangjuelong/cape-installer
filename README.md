@@ -368,7 +368,7 @@ sudo systemctl status cape       # 应该 active (running) 而不是 failed
 | `docs/UNINSTALL.md` | 卸载手册（10 个 u-stage 详解 + 备份恢复） |
 | `docs/TROUBLESHOOTING.md` | 已知问题 + 故障排查指引 |
 | `docs/BUILD-GUEST-ON-MAC.md` | 在 Intel Mac (UTM) 构建客户机推送服务器（Phase C 替代路径） |
-| `docs/WHY.md` | 13 个关键设计决策（ADR）+ 实地验证发现 |
+| `docs/WHY.md` | 16 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---
 
