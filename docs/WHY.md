@@ -426,7 +426,7 @@ VNC 装 Win10 体验差，每次都要在 5901 拉桌面装系统、敲数十项
 | 自动化深度 | docs + helper scripts | 客户机加固高密度脚本化；装机一次性手工 |
 | IP 策略 | 双保险（DHCP reservation + 客户机内静态） | 单点失败容忍 |
 | MAC | 固定 `52:54:00:CA:FE:01` | DHCP reservation 可工作 |
-| 磁盘 SATA / 网卡 e1000 | SATA + e1000 | Win10 自带驱动；virtio 需注入 |
+| 磁盘 IDE / 网卡 e1000 | IDE + e1000 | Win10 自带 PIIX/Intel 驱动；UTM 4.x GUI 不暴露 SATA；virtio 需注入 |
 | 跨主机交接 | 单 qcow2 + sha256 sidecar | 极简契约 |
 | 快照在哪拍 | 服务器侧（c50） | libvirt 在 qcow2 元数据里管 |
 

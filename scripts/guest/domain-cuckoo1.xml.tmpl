@@ -26,9 +26,8 @@
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2' cache='none' discard='unmap'/>
       <source file='/var/lib/libvirt/images/${GUEST_NAME}.qcow2'/>
-      <target dev='sda' bus='sata'/>
+      <target dev='hda' bus='ide'/>
     </disk>
-    <controller type='sata' index='0'/>
     <interface type='network'>
       <mac address='${GUEST_MAC}'/>
       <source network='default'/>
