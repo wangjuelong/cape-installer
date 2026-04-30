@@ -43,7 +43,7 @@ existing=$(virsh net-dumpxml default \
   | grep -E "<host mac=['\"]${GUEST_MAC}['\"]" || true)
 if [ -n "$existing" ]; then
   virsh net-update default delete ip-dhcp-host \
-    "<host mac='${GUEST_MAC}' ip='${GUEST_IP}'/>" \
+    "<host mac='${GUEST_MAC}' name='${GUEST_NAME}' ip='${GUEST_IP}'/>" \
     --live --config 2>/dev/null \
     || echo "[~] 旧 reservation 删除失败，继续 add"
 fi
