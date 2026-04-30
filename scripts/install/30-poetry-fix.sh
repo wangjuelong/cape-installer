@@ -38,7 +38,22 @@ sudo -u cape bash -lc \
   "cd $CAPE_ROOT && PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring \
    /etc/poetry/bin/poetry install --no-interaction --no-root"
 
-# ---- 5. sanity ----
+# ---- 5. 确保 venv 在 $CAPE_ROOT/.venv（symlink 兜底）----
+# `poetry config virtualenvs.in-project true` 在某些环境下不生效（poetry 检测到
+# cwd 不可读时 silent fail），venv 落到 /home/cape/.cache/pypoetry/virtualenvs/...。
+# 这里检测真实路径并 symlink，确保后续 stage（40-kvm-libvirt 等）能用 .venv 路径。
+if [ ! -e "$CAPE_ROOT/.venv" ]; then
+  actual_venv=$(sudo -u cape bash -lc "cd $CAPE_ROOT && /etc/poetry/bin/poetry env info --path" 2>/dev/null)
+  if [ -n "$actual_venv" ] && [ -d "$actual_venv" ]; then
+    ln -sf "$actual_venv" "$CAPE_ROOT/.venv"
+    echo "[✓] symlink $CAPE_ROOT/.venv → $actual_venv"
+  else
+    echo "[-] 找不到 poetry venv 真实路径（poetry env info 失败）"
+    exit 1
+  fi
+fi
+
+# ---- 6. sanity ----
 sudo -u cape "$CAPE_ROOT/.venv/bin/python" -c \
   'import django, pymongo, pefile, yara, capstone, sqlalchemy; print("core deps OK")'
 
