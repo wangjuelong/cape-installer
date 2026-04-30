@@ -361,3 +361,78 @@ community.py 60s 超时跳过的 patch（写脚本时凭 234 经验加的）在 
 - **Phase D**：高可用（distributed CAPE，多 worker）
 - **海外网络兼容模式**：`config.env` 加 `MIRROR_REGION=cn|intl`，区分镜像选择
 - **Ansible 化**：把 stage 脚本改成 Ansible role（如团队规模继续扩大）
+
+---
+
+## ADR-layout-refactor：scripts/ 拆 install/ + uninstall/ + guest/（2026-04-30 追加）
+
+**上下文**：原来 19 个 stage 平铺在 `scripts/`，加 Phase C 又要新增 8 个文件——不分目录会变成 27 个文件混杂，维护和查找都吃力。
+
+**选择**：`scripts/install/`（9 个安装 stage）+ `scripts/uninstall/`（10 个卸载 stage）+ `scripts/guest/`（Phase C 全部新增）。
+
+**备选**：
+- A 留原状不重构 — 27 个文件混杂
+- B 按 phase 分（phase-b-install / phase-b-uninstall / phase-c）— 命名长，"phase" 概念用户不熟
+- C 按文件类型（bash/ powershell/ template/）— 反模式："变更一起的东西放一起"原则
+
+**理由**：
+- `install/` + `uninstall/` 与现有 Makefile target 命名一致
+- `guest/` 与 libvirt/CAPE 术语一致（guest VM）
+- `lib/` + `vendor/` 不动——多方共享，单一所有者无意义
+- `domain-cuckoo1.xml.tmpl` 放 `scripts/guest/` 而不是 `vendor/`（它是我们写的，不是上游 vendor 资产）
+
+**影响**：
+- 19 个现有脚本 git mv，每个改 1 行 source fallback 路径（`/..` → `/../..`）
+- Makefile 19 行 path 全改 + force-% 规则扩展为三目录查找
+- README.md 仓库结构图重画
+- 本文件 ADR-Q3 的文件树同步更新
+
+---
+
+## ADR-Phase-C：Intel Mac (UTM) 构建客户机管线（2026-04-30 追加）
+
+**上下文**：cape-installer 完成 Phase B 后必须接入一台 Windows 客户机才能真正分析样本。`README §5` 是直接在服务器 `virt-install` + VNC 的手工路径，但当：
+- 服务器是 headless（仅 SSH，无显示器）
+- 操作者只有 Mac
+
+VNC 装 Win10 体验差，每次都要在 5901 拉桌面装系统、敲数十项反检测策略，效率低且易漏。
+
+**选择**：**Approach A on Intel Mac with UTM**——客户机内脚本化加固 + 服务器端自动注册 + 跨主机交接靠单 qcow2 + sha256。详见 spec [`docs/superpowers/specs/2026-04-30-phase-c-utm-mac-build-pipeline-design.md`](superpowers/specs/2026-04-30-phase-c-utm-mac-build-pipeline-design.md)。
+
+**备选**：
+- B：Mac + VMware Fusion — 收费 + VMDK→qcow2 转换 + Fusion 痕迹清理（用户已抛弃）
+- C：服务器侧 + SSH 隧道 VNC — 仅当 Mac 是 Apple Silicon 时才必走这条
+- D：autounattend.xml 全自动 — 实施成本高，回报低（只装 1-2 台时）
+
+**理由**：
+- **UTM 与服务器同 hypervisor (QEMU)**——qcow2 原生输出，零格式转换；anti-VM 痕迹差异为零
+- 把"高密度高重复"的客户机内加固 30+ 项**脚本化**（c-guest-prep.ps1）
+- 把"一次性、易错"的 Windows 装机**保留手工**（UTM GUI 装机一次完事）
+- 跨主机交接 = 单 qcow2 + sha256 sidecar，零反向 SSH
+
+**影响**：
+- 新增 `scripts/guest/` 含 5 个 c-stage bash + 1 个 in-guest PowerShell + 1 个 Mac shell + 1 个 XML 模板
+- `Makefile` 加 `import-guest` target + `GUEST_QCOW2` 强校验
+- `lib/common.sh` 加 4 个 helper（`render_template` / `virsh_wait_running` / `agent_alive` / `kvm_conf_section_exists`）
+- `config.env.sample` 加 5 个 GUEST_* 参数
+- 新增 `docs/BUILD-GUEST-ON-MAC.md`
+
+**关键技术决策**：
+
+| 决策点 | 选择 | 理由 |
+|---|---|---|
+| Win 版本 | Win10 LTSC | 现代样本兼容；LTSC 比 Pro/Home 少 bloat |
+| Hypervisor | UTM（不 Fusion） | 免费 + 同 server hypervisor + qcow2 原生 |
+| 自动化深度 | docs + helper scripts | 客户机加固高密度脚本化；装机一次性手工 |
+| IP 策略 | 双保险（DHCP reservation + 客户机内静态） | 单点失败容忍 |
+| MAC | 固定 `52:54:00:CA:FE:01` | DHCP reservation 可工作 |
+| 磁盘 SATA / 网卡 e1000 | SATA + e1000 | Win10 自带驱动；virtio 需注入 |
+| 跨主机交接 | 单 qcow2 + sha256 sidecar | 极简契约 |
+| 快照在哪拍 | 服务器侧（c50） | libvirt 在 qcow2 元数据里管 |
+
+**已知不在范围**：
+- autounattend.xml 无人值守装 Win10
+- 多客户机批量（cuckoo2/3...）：c30 已支持追加，但 Makefile 当前只处理一个 GUEST_NAME
+- virtio-win 驱动注入路径
+- Apple Silicon Mac 支持（x86_64 模拟过慢）
+- Fusion 路径（已明确抛弃）
