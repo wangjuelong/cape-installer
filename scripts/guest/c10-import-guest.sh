@@ -50,6 +50,7 @@ echo "[✓] qcow2 格式校验通过"
 # ---- 4. 磁盘空间检查 ----
 need_kb=$(qemu-img info --output=json "$GUEST_QCOW2" \
   | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["virtual-size"]//1024)')
+[[ "$need_kb" =~ ^[0-9]+$ ]] || { echo "[-] 无法解析 qcow2 虚拟大小"; exit 1; }
 avail_kb=$(df --output=avail "$TARGET_DIR" | tail -1)
 if [ "$avail_kb" -lt "$need_kb" ]; then
   echo "[-] $TARGET_DIR 可用 ${avail_kb}KB < 需要 ${need_kb}KB"
