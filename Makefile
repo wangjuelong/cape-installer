@@ -50,7 +50,14 @@ UNINSTALL_STAGES := \
   u80-clean-cron \
   u99-verify
 
-.PHONY: all clean help force-% uninstall uninstall-dry uninstall-yes $(STAGES) $(UNINSTALL_STAGES)
+C_STAGES := \
+  c10-import-guest \
+  c20-define-domain \
+  c30-register-kvm-conf \
+  c40-smoke-guest \
+  c50-snapshot-and-cape
+
+.PHONY: all clean help force-% uninstall uninstall-dry uninstall-yes import-guest $(STAGES) $(UNINSTALL_STAGES) $(C_STAGES)
 
 all: $(STAGES)
 
@@ -88,6 +95,25 @@ u70-remove-users:            ; bash scripts/uninstall/u70-remove-users.sh
 u80-clean-cron:              ; bash scripts/uninstall/u80-clean-cron.sh
 u99-verify:                  ; bash scripts/uninstall/u99-verify.sh
 
+# ----- Phase C：客户机导入 -----
+# import-guest 必须传 GUEST_QCOW2=/path/to.qcow2
+ifneq ($(filter import-guest $(C_STAGES),$(MAKECMDGOALS)),)
+ifeq ($(GUEST_QCOW2),)
+$(error 必须传 GUEST_QCOW2: sudo make import-guest GUEST_QCOW2=/tmp/cuckoo1.qcow2)
+endif
+ifeq ($(wildcard $(GUEST_QCOW2)),)
+$(error GUEST_QCOW2 文件不存在: $(GUEST_QCOW2))
+endif
+endif
+
+import-guest: $(C_STAGES)
+
+c10-import-guest:                                  ; bash scripts/guest/c10-import-guest.sh
+c20-define-domain:    c10-import-guest             ; bash scripts/guest/c20-define-domain.sh
+c30-register-kvm-conf: c20-define-domain           ; bash scripts/guest/c30-register-kvm-conf.sh
+c40-smoke-guest:      c30-register-kvm-conf        ; bash scripts/guest/c40-smoke-guest.sh
+c50-snapshot-and-cape: c40-smoke-guest             ; bash scripts/guest/c50-snapshot-and-cape.sh
+
 # 强制重做某 stage（绕过幂等守卫）
 force-%:
 	@if [ -f scripts/install/$*.sh ]; then \
@@ -115,9 +141,15 @@ help:
 	@echo "  sudo make uninstall-yes       # 跳过 prompt（CI/批量用）"
 	@echo "  sudo make u<NN>-<stage>       # 单步卸载：u30-purge-apt 等"
 	@echo ""
+	@echo "Phase C 客户机："
+	@echo "  sudo make import-guest GUEST_QCOW2=/path/to.qcow2"
+	@echo "                                # 校验 + 注册 + 启 VM + 拍快照 + unmask cape"
+	@echo "  sudo make c<NN>-<stage>       # 单步：c10-import-guest / c20-define-domain / ..."
+	@echo ""
 	@echo "其他："
 	@echo "  make clean                    # 清空 logs/ state/"
 	@echo ""
 	@echo "Stage 列表："
 	@$(foreach s,$(STAGES),echo "  install:   $(s)";)
 	@$(foreach s,$(UNINSTALL_STAGES),echo "  uninstall: $(s)";)
+	@$(foreach s,$(C_STAGES),echo "  phase-c:  $(s)";)
