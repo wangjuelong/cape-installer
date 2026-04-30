@@ -87,8 +87,12 @@ sudo make help | grep import-guest    # 期望命中
 启动 VM → 走标准 Win10 装机流程：
 - 语言、键盘选默认
 - 选 Custom Install → 选磁盘
-- 不要联网（创建本地账户）
+- OOBE 用本地账户（不登微软账户）：
+  - **Username：`John`**（避开 `cape`/`analyst`/`sandbox`/`vm` 这类反 VM 样本会查的关键词）
+  - **Password：`cape123`**（c-guest-prep.ps1 的 `-AdminPassword` 默认推荐这个值；后续会写入注册表配自动登录）
+- Privacy 6 个开关全部关掉
 - 装到桌面后**不要装任何 Tools**
+- 如果弹"是否允许此电脑被网络发现"：选 **Yes**（c-guest-prep.ps1 也会强制改成 Private）
 
 ### 2.3 把 c-guest-prep.ps1 送进客户机
 
@@ -109,13 +113,24 @@ UTM → Settings → 加 CD/DVD 设备 → 挂 `/tmp/cape.iso` → 客户机里 
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-D:\c-guest-prep.ps1
 
-# 默认 IP 192.168.122.105。要换：
-# D:\c-guest-prep.ps1 -GuestIP 192.168.122.106
+# AdminPassword 是 mandatory 的（用来配自动登录）。
+# 推荐默认值 cape123（与 §2.2 OOBE 设的密码一致）。
+D:\c-guest-prep.ps1 -AdminPassword cape123
+
+# 改 IP / 改用户：
+# D:\c-guest-prep.ps1 -AdminPassword <你的密码> -GuestIP 192.168.122.106
+# D:\c-guest-prep.ps1 -AdminPassword <你的密码> -AdminUser Mike
 ```
 
-脚本会跑 5-10 分钟，然后**自动关机**（等 60s 给你 Ctrl+C 取消的机会）。
+脚本会跑 5-10 分钟，做：
+1. 关 Defender / Tamper / SmartScreen / Update / Telemetry / UAC / Firewall
+2. 装 Python 3.12 + 拉 agent.py + 注册启动项
+3. 配静态 IP
+4. **配自动登录**（保证下次开机直接到桌面，agent.py 自动起来）
+5. **网络 profile 强制 Private + 禁弹"新网络"提示**（避免推到服务器后再弹）
+
+完成后**自动关机**（等 60s 给你 Ctrl+C 取消的机会）。
 
 ---
 

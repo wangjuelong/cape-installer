@@ -3,11 +3,16 @@
 #   1. 关 Defender / Tamper / SmartScreen / Update / Telemetry / UAC / Firewall
 #   2. 装 Python 3.12 + 拉 agent.py + 改 .pyw + 注册启动项
 #   3. 配静态 IP (默认 192.168.122.105/24, gw 192.168.122.1)
-#   4. shutdown /s /t 0
+#   4. 配自动登录（agent.py 注册在 HKLM\Run，需要用户登录后才触发）
+#   5. 网络 profile 强制 Private + 禁弹"新网络"提示
+#   6. shutdown /s /t 0
 #
 # 用法（客户机内 Admin PowerShell）：
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-#   .\c-guest-prep.ps1
+#   .\c-guest-prep.ps1 -AdminPassword cape123
+#
+# -AdminPassword 是 mandatory 的——明文写入 HKLM\...\Winlogon\DefaultPassword
+# 用于自动登录。CAPE 客户机在隔离的 virbr0 网段，明文密码风险可接受。
 
 [CmdletBinding()]
 param(
@@ -17,6 +22,9 @@ param(
   [string]$DnsServer = '192.168.122.1',
   [string]$AgentUrl = 'https://gh-proxy.com/https://raw.githubusercontent.com/kevoreilly/CAPEv2/master/agent/agent.py',
   [string]$PythonInstallerUrl = 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe',
+  [string]$AdminUser = $env:USERNAME,
+  [Parameter(Mandatory=$true)]
+  [string]$AdminPassword,
   [switch]$NoShutdown
 )
 
@@ -165,6 +173,30 @@ Set-DnsClientServerAddress `
   -ServerAddresses $DnsServer
 
 OK "静态 IP 配置完成（adapter: $($adapter.Name)）"
+
+# ---- 13.5 配自动登录 ----
+# agent.py 注册在 HKLM\Run，必须有用户登录到桌面才会被触发。
+# 明文密码写入 Winlogon registry——CAPE 客户机在 isolated virbr0 网段，可接受。
+Step "配自动登录: $AdminUser"
+$winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+Set-ItemProperty -Path $winlogon -Name AutoAdminLogon    -Value '1'              -Type String
+Set-ItemProperty -Path $winlogon -Name DefaultUserName   -Value $AdminUser       -Type String
+Set-ItemProperty -Path $winlogon -Name DefaultPassword   -Value $AdminPassword   -Type String
+Set-ItemProperty -Path $winlogon -Name DefaultDomainName -Value $env:COMPUTERNAME -Type String
+# 确保 password 不在登录后过期清空
+Set-ItemProperty -Path $winlogon -Name AutoLogonCount    -Value 0xFFFFFFFF       -Type DWord -ErrorAction SilentlyContinue
+OK "AutoAdminLogon=1, DefaultUserName=$AdminUser"
+
+# ---- 13.6 网络 profile 强制 Private + 禁"新网络"提示 ----
+Step '把网络 profile 强制设为 Private + 禁弹新网络提示'
+# 当前已有的网卡 profile 全部设为 Private
+Get-NetConnectionProfile -ErrorAction SilentlyContinue | ForEach-Object {
+  Set-NetConnectionProfile -InterfaceIndex $_.InterfaceIndex -NetworkCategory Private -ErrorAction SilentlyContinue
+}
+# 禁弹"是否发现网络"对话框（让 Win10 默认按 Private 处理新网络，避免推到服务器后再弹）
+$nnwKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff'
+if (-not (Test-Path $nnwKey)) { New-Item -Path $nnwKey -Force | Out-Null }
+OK '所有网卡 profile = Private，新网络提示已禁'
 
 # ---- 14. 总结 ----
 Write-Host ''
