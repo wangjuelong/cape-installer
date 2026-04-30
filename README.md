@@ -186,6 +186,12 @@ seabios-rel-1.16.3.tar.gz sha256 1c1742a315b0c2fefa9390c8a50e2ac1a6f4806e0715aec
 
 ## 5. 添加分析客户机 (Phase C)
 
+> **如果你的服务器是 headless 且你只有 Mac**——本仓库提供
+> 一条**在 Intel Mac (UTM) 构建 + scp 推服务器自动注册**的更便捷路径。详见
+> [docs/BUILD-GUEST-ON-MAC.md](docs/BUILD-GUEST-ON-MAC.md)。
+>
+> 本节剩余内容是直接在服务器上 `virt-install` 的手工路径。两条路径并存，按需挑选。
+
 `cape-installer` 自动化的是 **Phase B**：host 服务栈 + KVM/libvirt + 反 VM QEMU/SeaBios。
 要让 CAPE **真正分析样本**，还需要在 virbr0 上起一台 **Windows 客户机**并接入。本章给出推荐路径。
 
@@ -361,6 +367,7 @@ sudo systemctl status cape       # 应该 active (running) 而不是 failed
 | `docs/INSTALL.md` | 详细步骤手册（每个 stage 做了什么、怎么手动验证） |
 | `docs/UNINSTALL.md` | 卸载手册（10 个 u-stage 详解 + 备份恢复） |
 | `docs/TROUBLESHOOTING.md` | 已知问题 + 故障排查指引 |
+| `docs/BUILD-GUEST-ON-MAC.md` | 在 Intel Mac (UTM) 构建客户机推送服务器（Phase C 替代路径） |
 | `docs/WHY.md` | 13 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---

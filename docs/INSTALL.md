@@ -234,3 +234,12 @@ sudo systemctl start cape cape-processor
 | Tor jammy keyring | 上游 deb 仓库 keyring 不在 jammy | Tor 路由是可选的，不影响主流程 |
 | lzip 包 | 这次踩到 502，可有可无 | `apt install lzip` |
 | 客户机 Windows VM | Phase C 范围 | 见 README "还差什么" |
+
+---
+
+## Phase C：分析客户机接入
+
+`make all` 跑完是 Phase B（host stack + KVM/libvirt + 反 VM）。要让 CAPE 真正分析样本，需要在 virbr0 上接入一台 Windows 客户机。两条路径：
+
+1. **直接在服务器上 `virt-install` + VNC 装机**（默认路径，README §5 详解）
+2. **Intel Mac (UTM) 构建 + `make import-guest` 自动注册**（headless 服务器推荐）—— 详见 [BUILD-GUEST-ON-MAC.md](BUILD-GUEST-ON-MAC.md)
