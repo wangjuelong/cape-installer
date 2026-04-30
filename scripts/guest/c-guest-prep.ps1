@@ -55,11 +55,28 @@ Set-MpPreference -SubmitSamplesConsent       NeverSend   -ErrorAction SilentlyCo
 OK 'Defender 实时保护已关'
 
 # ---- 2. 关 Tamper Protection ----
+# Defender\Features 注册表 key 由 TrustedInstaller ACL 锁定，Administrator
+# 直接写常被拒绝。我们的策略：先看 IsTamperProtected 状态——如果已 False，
+# 即使注册表写不进去也无所谓；只有 IsTamperProtected = True 才必须 GUI 关闭。
 Step '关 Tamper Protection'
 $tamperKey = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
-if (-not (Test-Path $tamperKey)) { New-Item -Path $tamperKey -Force | Out-Null }
-New-ItemProperty -Path $tamperKey -Name TamperProtection -Value 0 -PropertyType DWord -Force | Out-Null
-OK 'Tamper Protection 已关'
+try {
+  if (-not (Test-Path $tamperKey)) { New-Item -Path $tamperKey -Force -ErrorAction Stop | Out-Null }
+  New-ItemProperty -Path $tamperKey -Name TamperProtection -Value 0 `
+    -PropertyType DWord -Force -ErrorAction Stop | Out-Null
+  OK 'Tamper Protection 注册表已写 0'
+} catch {
+  $isTamper = $null
+  try { $isTamper = (Get-MpComputerStatus -ErrorAction Stop).IsTamperProtected } catch {}
+  if ($isTamper -eq $false) {
+    OK 'Tamper Protection 已是 OFF（注册表受 ACL 锁定但 IsTamperProtected=False，跳过）'
+  } else {
+    Warn 'Tamper Protection 注册表锁定 + 当前 ON——必须 GUI 关闭后重跑：'
+    Warn '路径：开始 → 设置 → 更新和安全 → Windows 安全中心'
+    Warn '     → 病毒和威胁防护 → 管理设置 → 篡改防护 → 关'
+    Die  '请手工关 Tamper Protection 后重跑（前面 step 幂等无副作用）'
+  }
+}
 
 # ---- 3. 关 Defender 整体（组策略）----
 Step '关 Defender 整体（组策略）'
