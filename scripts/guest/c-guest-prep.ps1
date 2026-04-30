@@ -44,7 +44,11 @@ if (-not $isAdmin) { Die '必须以 Administrator 启动 PowerShell' }
 OK 'Admin 已确认'
 
 # ---- 1. 关 Defender 实时保护 ----
-Step '关 Defender 实时保护'
+# 双层防御：
+#   (a) Set-MpPreference 立即生效但是 session-scoped（重启后被 OS 重置 ON）
+#   (b) HKLM\SOFTWARE\Policies\... GPO 持久化（重启后仍生效，扛住会重启的样本）
+Step '关 Defender 实时保护（运行时 + GPO 持久化）'
+# (a) 当前会话立即生效
 Set-MpPreference -DisableRealtimeMonitoring $true       -ErrorAction SilentlyContinue
 Set-MpPreference -DisableIOAVProtection      $true       -ErrorAction SilentlyContinue
 Set-MpPreference -DisableBehaviorMonitoring  $true       -ErrorAction SilentlyContinue
@@ -52,7 +56,20 @@ Set-MpPreference -DisableBlockAtFirstSeen    $true       -ErrorAction SilentlyCo
 Set-MpPreference -DisableScriptScanning      $true       -ErrorAction SilentlyContinue
 Set-MpPreference -DisableArchiveScanning     $true       -ErrorAction SilentlyContinue
 Set-MpPreference -SubmitSamplesConsent       NeverSend   -ErrorAction SilentlyContinue
-OK 'Defender 实时保护已关'
+Set-MpPreference -MAPSReporting              0           -ErrorAction SilentlyContinue
+# (b) GPO 持久化——重启后实时保护仍然 OFF
+$rtpGpoKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'
+if (-not (Test-Path $rtpGpoKey)) { New-Item -Path $rtpGpoKey -Force | Out-Null }
+New-ItemProperty -Path $rtpGpoKey -Name DisableRealtimeMonitoring   -Value 1 -PropertyType DWord -Force | Out-Null
+New-ItemProperty -Path $rtpGpoKey -Name DisableBehaviorMonitoring   -Value 1 -PropertyType DWord -Force | Out-Null
+New-ItemProperty -Path $rtpGpoKey -Name DisableOnAccessProtection   -Value 1 -PropertyType DWord -Force | Out-Null
+New-ItemProperty -Path $rtpGpoKey -Name DisableScanOnRealtimeEnable -Value 1 -PropertyType DWord -Force | Out-Null
+# Spynet/MAPS GPO 也持久化关云查询
+$spyGpoKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet'
+if (-not (Test-Path $spyGpoKey)) { New-Item -Path $spyGpoKey -Force | Out-Null }
+New-ItemProperty -Path $spyGpoKey -Name SpynetReporting       -Value 0 -PropertyType DWord -Force | Out-Null
+New-ItemProperty -Path $spyGpoKey -Name SubmitSamplesConsent  -Value 2 -PropertyType DWord -Force | Out-Null
+OK 'Defender 实时保护 + 云查询已关（运行时 + GPO 双层）'
 
 # ---- 2. 关 Tamper Protection ----
 # Defender\Features 注册表 key 由 TrustedInstaller ACL 锁定，Administrator
