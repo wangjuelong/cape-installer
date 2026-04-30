@@ -159,10 +159,18 @@ $crashKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl'
 New-ItemProperty -Path $crashKey -Name AutoReboot -Value 0 -PropertyType DWord -Force | Out-Null
 OK '电源 / 错误报告 / 蓝屏配置完成'
 
-# ---- 10. 装 Python 3.12 ----
-Step "装 Python 3.12（$PythonInstallerUrl）"
+# ---- 10. 装 Python 3.12（优先用 D:\python-3.12.7.exe 本地副本）----
+# Step 13 会把 IP 改成静态 192.168.122.105，之后 VM 没互联网。如果脚本中途
+# 失败需要重跑，下载步骤会失败。所以把安装包放 D: ISO 上是更稳的方式。
+$pyOnIso = 'D:\python-3.12.7.exe'
 $pyExe = "$env:TEMP\python-installer.exe"
-Invoke-WebRequest -Uri $PythonInstallerUrl -OutFile $pyExe -UseBasicParsing
+if (Test-Path $pyOnIso) {
+  Step "装 Python 3.12（D: 本地副本，无需联网）"
+  Copy-Item $pyOnIso $pyExe -Force
+} else {
+  Step "装 Python 3.12（联网下载 $PythonInstallerUrl）"
+  Invoke-WebRequest -Uri $PythonInstallerUrl -OutFile $pyExe -UseBasicParsing
+}
 Start-Process -FilePath $pyExe -ArgumentList @(
   '/quiet','InstallAllUsers=1','PrependPath=1',
   'Include_test=0','Include_doc=0','Include_launcher=1'
@@ -177,12 +185,18 @@ if ($pyArch -ne '32bit') {
 }
 OK "Python: $pyVer ($pyArch)"
 
-# ---- 11. 拉 agent.py ----
-Step "拉 agent.py（$AgentUrl）"
+# ---- 11. 拉 agent.py（优先用 D:\agent.py 本地副本）----
+$agentOnIso = 'D:\agent.py'
 $agentDst = 'C:\agent.pyw'
-Invoke-WebRequest -Uri $AgentUrl -OutFile $agentDst -UseBasicParsing
+if (Test-Path $agentOnIso) {
+  Step '拷 agent.py（D: 本地副本，无需联网）'
+  Copy-Item $agentOnIso $agentDst -Force
+} else {
+  Step "拉 agent.py（联网下载 $AgentUrl）"
+  Invoke-WebRequest -Uri $AgentUrl -OutFile $agentDst -UseBasicParsing
+}
 if (-not (Test-Path $agentDst) -or (Get-Item $agentDst).Length -lt 1024) {
-  Die "agent.py 下载失败：$agentDst 不存在或太小"
+  Die "agent.py 不存在或太小：$agentDst"
 }
 OK "agent.pyw → $agentDst"
 
