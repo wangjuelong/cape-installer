@@ -1,8 +1,13 @@
 # Phase C：在 Windows 工作站构建客户机并推送到服务器
 
+> **⚠️ SUPERSEDED 2026-04-30**：本 spec 假设宿主是 Windows + VMware Workstation。
+> 用户后续转向 Mac + UTM 路径，新 spec 见
+> [`2026-04-30-phase-c-utm-mac-build-pipeline-design.md`](./2026-04-30-phase-c-utm-mac-build-pipeline-design.md)。
+> 本文保留作为决策追溯——70% 内容（服务器侧 5 个 c-stage / 网络契约 / 幂等设计）被新 spec 复用。
+
 | | |
 |---|---|
-| 状态 | Design 已确认（待写实现 plan） |
+| 状态 | **Superseded** |
 | 日期 | 2026-04-30 |
 | 来源 | superpowers:brainstorming 会话（Q1-Q4 + §1-§5） |
 | 范围 | cape-installer 仓库新增 Phase C 工具链：Windows 工作站建客户机 → 转 qcow2 → 推服务器 → 自动注册到 CAPE |
