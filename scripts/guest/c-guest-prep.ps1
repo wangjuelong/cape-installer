@@ -21,7 +21,9 @@ param(
   [int]$Prefix = 24,
   [string]$DnsServer = '192.168.122.1',
   [string]$AgentUrl = 'https://gh-proxy.com/https://raw.githubusercontent.com/kevoreilly/CAPEv2/master/agent/agent.py',
-  [string]$PythonInstallerUrl = 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe',
+  # x86 (32-bit) Python——CAPE agent.py 强制要求 x86（capemon.dll 监控注入是 32 位的）
+  # x64 Python 会被 agent.py 启动检查直接拒绝："python3x86! not x64"
+  [string]$PythonInstallerUrl = 'https://www.python.org/ftp/python/3.12.7/python-3.12.7.exe',
   [string]$AdminUser = $env:USERNAME,
   [Parameter(Mandatory=$true)]
   [string]$AdminPassword,
@@ -168,7 +170,12 @@ Start-Process -FilePath $pyExe -ArgumentList @(
 $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine')
 $pyVer = & python --version 2>&1
 if ($pyVer -notmatch '^Python 3\.12\.') { Die "Python 装失败：$pyVer" }
-OK "Python: $pyVer"
+# 验证是 x86（32-bit）——agent.py 强制要求
+$pyArch = & python -c "import platform; print(platform.architecture()[0])" 2>&1
+if ($pyArch -ne '32bit') {
+  Die "Python 架构不对（实际 $pyArch，期望 32bit）。CAPE agent.py 要求 x86 Python。安装 URL 应是 python-3.12.x.exe（不带 -amd64 后缀）"
+}
+OK "Python: $pyVer ($pyArch)"
 
 # ---- 11. 拉 agent.py ----
 Step "拉 agent.py（$AgentUrl）"
