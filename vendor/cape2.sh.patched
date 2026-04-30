@@ -1183,28 +1183,32 @@ function dependencies() {
 
     usermod -a -G systemd-journal ${USER}
 
-    # https://www.torproject.org/docs/debian.html.en
+    # CN-skip: Tor 在中国大陆 GFW 阻拦下不可达（deb.torproject.org TCP 443 不通），
+    # 且 Tor 是 CAPE 的可选功能（仅用于让分析样本流量走 Tor 出口），整段跳过。
+    # 实地踩坑（192.168.1.6 测试机）：wget 无 timeout 永挂 → 整个 stage 卡死。
+    # 装 gnupg2（Phase B 其他步骤可能需要）保留，Tor 本体跳过。
     sudo apt-get install -y gnupg2
 
-    wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | sudo tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null
+    if false; then
+        wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | sudo tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null
 
-    # Tor project has no release for Ubuntu noble (24-10-18)
-    # TODO: Check if it is still the case
-    if [ "$(lsb_release -cs)" = "noble" ]; then
-        echo "deb [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org jammy main" > /etc/apt/sources.list.d/tor.list
-        echo "deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org jammy main" >> /etc/apt/sources.list.d/tor.list
-    else
-        echo "deb [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org $(lsb_release -cs) main" > /etc/apt/sources.list.d/tor.list
-        echo "deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org $(lsb_release -cs) main" >> /etc/apt/sources.list.d/tor.list
-    fi
+        # Tor project has no release for Ubuntu noble (24-10-18)
+        # TODO: Check if it is still the case
+        if [ "$(lsb_release -cs)" = "noble" ]; then
+            echo "deb [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org jammy main" > /etc/apt/sources.list.d/tor.list
+            echo "deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org jammy main" >> /etc/apt/sources.list.d/tor.list
+        else
+            echo "deb [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org $(lsb_release -cs) main" > /etc/apt/sources.list.d/tor.list
+            echo "deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg arch=amd64] https://deb.torproject.org/torproject.org $(lsb_release -cs) main" >> /etc/apt/sources.list.d/tor.list
+        fi
 
-    sudo apt-get update 2>/dev/null
-    sudo systemctl stop tor@default.service && sudo systemctl disable tor@default.service
-    sudo apt-get install -y tor deb.torproject.org-keyring libzstd1
+        sudo apt-get update 2>/dev/null
+        sudo systemctl stop tor@default.service && sudo systemctl disable tor@default.service
+        sudo apt-get install -y tor deb.torproject.org-keyring libzstd1
 
-    sed -i 's/#RunAsDaemon 1/RunAsDaemon 1/g' /etc/tor/torrc
+        sed -i 's/#RunAsDaemon 1/RunAsDaemon 1/g' /etc/tor/torrc
 
-    cat >> /etc/tor/torrc <<EOF
+        cat >> /etc/tor/torrc <<EOF
 TransPort ${IFACE_IP}:9040
 DNSPort ${IFACE_IP}:5353
 NumCPUs $(getconf _NPROCESSORS_ONLN)
@@ -1213,9 +1217,10 @@ ControlPort 9051
 HashedControlPassword 16:D14CC89AD7848B8C60093105E8284A2D3AB2CF3C20D95FECA0848CFAD2
 EOF
 
-    #Then restart Tor:
-    sudo systemctl enable tor
-    sudo systemctl start tor
+        #Then restart Tor:
+        sudo systemctl enable tor
+        sudo systemctl start tor
+    fi
 
     #Edit the Privoxy configuration
     #sudo sed -i 's/R#        forward-socks5t             /     127.0.0.1:9050 ./        forward-socks5t             /     127.0.0.1:9050 ./g' /etc/privoxy/config
