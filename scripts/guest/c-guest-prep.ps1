@@ -1,4 +1,4 @@
-# c-guest-prep.ps1 — 在 Win10 LTSC 客户机内以 Administrator 跑
+﻿# c-guest-prep.ps1 — 在 Win10 LTSC 客户机内以 Administrator 跑
 # 用途：
 #   1. 关 Defender / Tamper / SmartScreen / Update / Telemetry / UAC / Firewall
 #   2. 装 Python 3.12 + 拉 agent.py + 改 .pyw + 注册启动项
