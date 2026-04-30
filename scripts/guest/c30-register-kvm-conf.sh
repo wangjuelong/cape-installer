@@ -19,8 +19,18 @@ CRUDINI=$(command -v crudini)
 [ -f "$CONF" ] || { echo "[-] $CONF 不存在——CAPE 还没装好"; exit 1; }
 
 # ---- 幂等守卫 ----
-if done_or_force kvm_conf_section_exists "$CONF" "$GUEST_NAME"; then
-  echo "[~] [$GUEST_NAME] section 已存在于 $CONF，跳过"
+# 仅检查 section 存在不够：upstream 默认 kvm.conf 自带示例 [cuckoo1] section，
+# 但内容不对（arch=x86，无 snapshot=clean），且 [kvm] machines 仍是空。
+# 必须同时验证：(1) cuckoo1 在 [kvm] machines 列表里 + (2) snapshot=clean 已设。
+guard_check() {
+  local current_machines current_snapshot
+  current_machines=$(sudo -u cape "$CRUDINI" --get "$CONF" kvm machines 2>/dev/null || echo "")
+  current_snapshot=$(sudo -u cape "$CRUDINI" --get "$CONF" "$GUEST_NAME" snapshot 2>/dev/null || echo "")
+  echo ",$current_machines," | grep -q ",${GUEST_NAME}," \
+    && [ "$current_snapshot" = "clean" ]
+}
+if done_or_force guard_check; then
+  echo "[~] $GUEST_NAME 已注册到 [kvm] machines + snapshot=clean 已设，跳过"
   stage_done
   exit 0
 fi
