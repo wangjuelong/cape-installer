@@ -141,3 +141,49 @@ run_or_warn() {
     return 0
   fi
 }
+
+# ===== Phase C helpers（c-stage 用）=====
+
+# render_template <template-file>
+# 用 envsubst 渲染 ${VAR} 占位符到 stdout。只展开传入白名单变量名，
+# 避免 $PATH / $HOME 被意外替换进 XML。
+# 用法：render_template scripts/guest/domain-cuckoo1.xml.tmpl > /tmp/domain.xml
+render_template() {
+  local tmpl="$1"
+  [ -f "$tmpl" ] || { log_err "模板不存在: $tmpl"; return 1; }
+  local whitelist='${GUEST_NAME} ${GUEST_IP} ${GUEST_MAC} ${GUEST_RAM_MB} ${GUEST_VCPUS} ${SUBNET}'
+  envsubst "$whitelist" < "$tmpl"
+}
+
+# virsh_wait_running <domain> <timeout-sec>
+# 轮询直到 domain state == running，或超时返回 1。
+virsh_wait_running() {
+  local dom="$1" timeout="${2:-60}"
+  local i=0
+  while [ "$i" -lt "$timeout" ]; do
+    if [ "$(virsh domstate "$dom" 2>/dev/null)" = "running" ]; then
+      return 0
+    fi
+    sleep 1
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# agent_alive <ip> <port>
+# 单次探测：HTTP GET http://ip:port/status 必须返回合法 JSON 且 status 字段存在。
+# 返回 0 表示 agent 起来了。
+agent_alive() {
+  local ip="$1" port="${2:-8000}"
+  curl -fsS --max-time 3 "http://${ip}:${port}/status" 2>/dev/null \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if "status" in d else 1)' \
+      2>/dev/null
+}
+
+# kvm_conf_section_exists <conf-file> <section>
+# 用 crudini 探测 INI 文件中是否已有某 section。
+kvm_conf_section_exists() {
+  local conf="$1" section="$2"
+  [ -f "$conf" ] || return 1
+  crudini --get "$conf" "$section" >/dev/null 2>&1
+}
