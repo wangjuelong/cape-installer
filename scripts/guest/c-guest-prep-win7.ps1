@@ -118,31 +118,46 @@ Step '电源永不待机 + 关 hibernation'
 & powercfg /h off 2>&1 | Out-Null
 OK '电源已配'
 
-# ---- 8. 装 Python 3.6.8（D: ISO 本地副本优先）----
-$pyExe = "$env:TEMP\python-installer.exe"
-$pyOnIso = Get-ChildItem 'D:\' -Filter 'python*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($pyOnIso) {
-  Step "装 Python 3.6.8（D: 本地副本 $($pyOnIso.Name)）"
-  Copy-Item $pyOnIso.FullName $pyExe -Force
-} else {
-  Step "装 Python 3.6.8（联网下载，可能因 TLS 1.2 失败）"
-  $wc = New-Object System.Net.WebClient
-  $wc.DownloadFile($PythonInstallerUrl, $pyExe)
+# ---- 8. 装 Python 3.6.8（幂等：已装 3.6.x x86 就跳过 installer）----
+# 刷新 PATH（防上轮装完 PATH 没载入）
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + `
+  [System.Environment]::GetEnvironmentVariable('Path','User')
+
+$existingPy = & cmd /c "python --version 2>&1"
+$existingArch = ''
+if ($existingPy -match '^Python 3\.6\.') {
+  $existingArch = & cmd /c "python -c ""import platform; print(platform.architecture()[0])"" 2>&1"
 }
 
-$pyArgs = @(
-  '/quiet','InstallAllUsers=1','PrependPath=1',
-  'Include_test=0','Include_doc=0','Include_launcher=1'
-)
-$proc = Start-Process -FilePath $pyExe -ArgumentList $pyArgs -Wait -PassThru -NoNewWindow
-if ($proc.ExitCode -ne 0) { Die "Python 装失败 exit=$($proc.ExitCode)" }
+if ($existingPy -match '^Python 3\.6\.' -and $existingArch -eq '32bit') {
+  Step "Python 已装并对（$existingPy / $existingArch），跳过安装"
+} else {
+  $pyExe = "$env:TEMP\python-installer.exe"
+  $pyOnIso = Get-ChildItem 'D:\' -Filter 'python*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($pyOnIso) {
+    Step "装 Python 3.6.8（D: 本地副本 $($pyOnIso.Name)）"
+    Copy-Item $pyOnIso.FullName $pyExe -Force
+  } else {
+    Step "装 Python 3.6.8（联网下载，可能因 TLS 1.2 失败）"
+    $wc = New-Object System.Net.WebClient
+    $wc.DownloadFile($PythonInstallerUrl, $pyExe)
+  }
 
-# 刷新 PATH
-$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine')
+  $pyArgs = @(
+    '/quiet','InstallAllUsers=1','PrependPath=1',
+    'Include_test=0','Include_doc=0','Include_launcher=1'
+  )
+  $proc = Start-Process -FilePath $pyExe -ArgumentList $pyArgs -Wait -PassThru -NoNewWindow
+  if ($proc.ExitCode -ne 0) { Die "Python 装失败 exit=$($proc.ExitCode)" }
 
-$pyVer = & python --version 2>&1
-if ($pyVer -notmatch '^Python 3\.6\.') { Die "Python 装失败：$pyVer" }
-$pyArch = & python -c "import platform; print(platform.architecture()[0])" 2>&1
+  # 刷新 PATH（installer 写到 Machine PATH 了）
+  $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine')
+}
+
+# 验证最终状态
+$pyVer = & cmd /c "python --version 2>&1"
+if ($pyVer -notmatch '^Python 3\.6\.') { Die "Python 不可用：$pyVer" }
+$pyArch = & cmd /c "python -c ""import platform; print(platform.architecture()[0])"" 2>&1"
 if ($pyArch -ne '32bit') {
   Die "Python 不是 32-bit（实际 $pyArch）。Win7 + agent.py 要 x86 Python，URL 不能带 -amd64"
 }
