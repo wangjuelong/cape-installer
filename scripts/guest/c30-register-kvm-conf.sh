@@ -11,6 +11,9 @@ stage_init "c30-register-kvm-conf"
 
 GUEST_NAME="${GUEST_NAME:-cuckoo1}"
 GUEST_IP="${GUEST_IP:-192.168.122.105}"
+GUEST_TAGS="${GUEST_TAGS:-win10ltsc,x64,cape}"
+GUEST_ARCH="${GUEST_ARCH:-x64}"
+GUEST_PLATFORM="${GUEST_PLATFORM:-windows}"
 SUBNET="${SUBNET:-192.168.122}"
 
 CONF=/opt/CAPEv2/conf/kvm.conf
@@ -57,13 +60,13 @@ echo "[✓] [kvm] machines = $new"
 
 # ---- 3. 写 [GUEST_NAME] section ----
 sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" label "$GUEST_NAME"
-sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" platform windows
+sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" platform "$GUEST_PLATFORM"
 sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" ip "$GUEST_IP"
 sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" snapshot clean
-sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" arch x64
-sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" tags "win10ltsc,x64,cape"
+sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" arch "$GUEST_ARCH"
+sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" tags "$GUEST_TAGS"
 sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" resultserver_ip "${SUBNET}.1"
 sudo -u cape "$CRUDINI" --set "$CONF" "$GUEST_NAME" resultserver_port 2042
-echo "[✓] [$GUEST_NAME] section 写入完成"
+echo "[✓] [$GUEST_NAME] section 写入完成（tags=$GUEST_TAGS, arch=$GUEST_ARCH）"
 
 stage_done
