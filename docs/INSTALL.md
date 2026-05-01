@@ -242,4 +242,4 @@ sudo systemctl start cape cape-processor
 `make all` 跑完是 Phase B（host stack + KVM/libvirt + 反 VM）。要让 CAPE 真正分析样本，需要在 virbr0 上接入一台 Windows 客户机。两条路径：
 
 1. **直接在服务器上 `virt-install` + VNC 装机**（默认路径，README §5 详解）
-2. **Intel Mac (UTM) 构建 + `make import-guest` 自动注册**（headless 服务器推荐）—— 详见 [BUILD-GUEST-ON-MAC.md](BUILD-GUEST-ON-MAC.md)
+2. **Intel Mac (UTM) 构建 + `make import-guest` 自动注册**（headless 服务器推荐）—— 详见 [guest/win10-ltsc.md](guest/win10-ltsc.md)

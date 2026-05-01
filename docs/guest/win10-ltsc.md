@@ -3,7 +3,7 @@
 > **状态**：本文档基于 2026-04-30 的真实部署（192.168.1.6 测试机）走通，包含所有踩坑修复。
 > 直接照本走应能一次性跑通。
 >
-> **Win7 客户机** 见平行版 [BUILD-WIN7-GUEST-ON-MAC.md](./BUILD-WIN7-GUEST-ON-MAC.md)。
+> **Win7 客户机** 见平行版 [win7-sp1.md](./win7-sp1.md)。
 > 配置类似但 Python 版本（3.6.8 vs 3.12.7）、PowerShell（2.0 vs 5.1）、Defender 关法等差异较大，单独维护。
 
 ---

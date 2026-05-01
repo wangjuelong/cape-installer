@@ -188,7 +188,7 @@ seabios-rel-1.16.3.tar.gz sha256 1c1742a315b0c2fefa9390c8a50e2ac1a6f4806e0715aec
 
 > **如果你的服务器是 headless 且你只有 Mac**——本仓库提供
 > 一条**在 Intel Mac (UTM) 构建 + scp 推服务器自动注册**的更便捷路径。详见
-> [docs/BUILD-GUEST-ON-MAC.md](docs/BUILD-GUEST-ON-MAC.md)。
+> [docs/guest/win10-ltsc.md](docs/guest/win10-ltsc.md)。
 >
 > 本节剩余内容是直接在服务器上 `virt-install` 的手工路径。两条路径并存，按需挑选。
 
@@ -367,8 +367,8 @@ sudo systemctl status cape       # 应该 active (running) 而不是 failed
 | `docs/INSTALL.md` | 详细步骤手册（每个 stage 做了什么、怎么手动验证） |
 | `docs/UNINSTALL.md` | 卸载手册（10 个 u-stage 详解 + 备份恢复） |
 | `docs/TROUBLESHOOTING.md` | 已知问题 + 故障排查指引 |
-| `docs/BUILD-GUEST-ON-MAC.md` | 在 Intel Mac (UTM) 构建 **Win10 LTSC** 客户机（cuckoo1，Phase C 替代路径） |
-| `docs/BUILD-WIN7-GUEST-ON-MAC.md` | 在 Intel Mac (UTM) 构建 **Win7 SP1 x64** 客户机（cuckoo2，Win7 specific 适配） |
+| `docs/guest/win10-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win10 LTSC** 客户机（cuckoo1，Phase C 替代路径） |
+| `docs/guest/win7-sp1.md` | 在 Intel Mac (UTM) 构建 **Win7 SP1 x64** 客户机（cuckoo2，Win7 specific 适配） |
 | `docs/WHY.md` | 16 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---

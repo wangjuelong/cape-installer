@@ -415,7 +415,7 @@ VNC 装 Win10 体验差，每次都要在 5901 拉桌面装系统、敲数十项
 - `Makefile` 加 `import-guest` target + `GUEST_QCOW2` 强校验
 - `lib/common.sh` 加 4 个 helper（`render_template` / `virsh_wait_running` / `agent_alive` / `kvm_conf_section_exists`）
 - `config.env.sample` 加 5 个 GUEST_* 参数
-- 新增 `docs/BUILD-GUEST-ON-MAC.md`
+- 新增 `docs/guest/win10-ltsc.md`
 
 **关键技术决策**：
 

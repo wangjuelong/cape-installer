@@ -3,7 +3,7 @@
 > **状态**：基于 2026-05-01 实地配置（手工版）+ `scripts/guest/c-guest-prep-win7.ps1` 自动化版。
 > Win7 已 EOL（2020-01-14），**配置上比 Win10 简单很多**——没 Tamper Protection / SmartScreen / Cortana / Telemetry 这一堆。
 >
-> 本文是 [BUILD-GUEST-ON-MAC.md](./BUILD-GUEST-ON-MAC.md)（Win10 LTSC）的 Win7 平行版。
+> 本文是 [win10-ltsc.md](./win10-ltsc.md)（Win10 LTSC）的 Win7 平行版。
 
 ---
 
@@ -25,7 +25,7 @@
 
 ### 与 Win10 LTSC 的关键差异
 
-| 维度 | Win10 LTSC（[BUILD-GUEST-ON-MAC.md](./BUILD-GUEST-ON-MAC.md)） | Win7 SP1 x64（本文） |
+| 维度 | Win10 LTSC（[win10-ltsc.md](./win10-ltsc.md)） | Win7 SP1 x64（本文） |
 |---|---|---|
 | **OS 版本号** | 10.0.19044+ | **6.1.7601** (RTM 是 7600，必须 SP1) |
 | **Python 版本** | 3.12.7 x86 | **3.6.8 x86**（最后一个不需 KB2533623/KB3063858 的 Python 3） |
@@ -496,4 +496,4 @@ CAPE 提交时用 `tags=win7,office` 选这个快照。
 | `4473f01` | D: ISO 本地副本优先（避免静态 IP 后断网） |
 | `9717c23` | 磁盘总线 IDE（UTM 4.x GUI 没 SATA） |
 
-更多踩坑记录见 `BUILD-GUEST-ON-MAC.md` §11——大部分服务器侧问题（Tor / poetry venv / domain XML / c30 guard 等）Win7 / Win10 共用，本文不重复。
+更多踩坑记录见 `win10-ltsc.md` §11——大部分服务器侧问题（Tor / poetry venv / domain XML / c30 guard 等）Win7 / Win10 共用，本文不重复。

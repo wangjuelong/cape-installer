@@ -41,7 +41,7 @@ User config: copy `config.env.sample` → `config.env`. Only two parameters are 
 
 - **Install:** `00-preflight → 10-mirrors → 20-host-stack → 30-poetry-fix → 31-cape-config → 40-kvm-libvirt → 50-anti-vm-qemu → 51-anti-vm-seabios → 99-smoke-test`
 - **Uninstall:** `u00-preflight → u10-stop-services → u20-backup-data → u30-purge-apt → u40-remove-files → u50-remove-systemd-units → u60-revert-system-config → u70-remove-users → u80-clean-cron → u99-verify`
-- **Phase C (client guest):** `c10-import-guest → c20-define-domain → c30-register-kvm-conf → c40-smoke-guest → c50-snapshot-and-cape`. Triggered by `sudo make import-guest GUEST_QCOW2=...`. Requires Phase B (`make all`) to have completed. The Mac-side workflow (manual UTM Win10 install + 1 PowerShell in-guest + 1 Mac shell export script) is documented in `docs/BUILD-GUEST-ON-MAC.md`.
+- **Phase C (client guest):** `c10-import-guest → c20-define-domain → c30-register-kvm-conf → c40-smoke-guest → c50-snapshot-and-cape`. Triggered by `sudo make import-guest GUEST_QCOW2=...`. Requires Phase B (`make all`) to have completed. The Mac-side workflow (manual UTM Win10 install + 1 PowerShell in-guest + 1 Mac shell export script) is documented in `docs/guest/win10-ltsc.md`.
 
 Install stages are linked by Make prerequisites (`51 ← 50 ← 40 ← …`), so any single-stage invocation re-checks earlier stages — but each stage is fully idempotent, so re-checks are cheap. Uninstall stages intentionally **lack** prereq edges: `u30` failing must not block `u40+` (best-effort cleanup).
 
