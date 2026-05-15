@@ -1,20 +1,19 @@
 # 在 Intel Mac (UTM) 上构建 CAPE Ubuntu 22.04 Server 客户机
 
-> **状态**：基于已跑通的 Windows 客户机经验（[win10-ltsc.md](./win10-ltsc.md)）的 Linux 平行版。
-> Ubuntu 22.04 Server 比 Windows 简单很多——没 Defender / SmartScreen / Tamper Protection / Cortana 这一堆，
-> 一个 bash 脚本 `c-guest-prep-ubuntu22.sh` 就能搞定 OS 配置。
+> **目标**：在 Intel Mac 上用 UTM 装一台 Ubuntu 22.04 Server 客户机，配好 CAPE agent 自启动 + 静态 IP，
+> 然后导出 qcow2 推到 CAPE 服务器上注册为 `cuckoo2`（platform=linux / arch=x64 / tags=ubuntu22,linux,x64）。
+> 一个 bash 脚本 `c-guest-prep-ubuntu22.sh` 就能搞定 OS 配置（apt / 自启动 / 静态 IP / autologin / 关自动更新）。
 >
-> 本文是 [win10-ltsc.md](./win10-ltsc.md) 的 Linux 平行版；
-> Win7 走 [win7-sp1.md](./win7-sp1.md)，Win11 走 [win11-ltsc.md](./win11-ltsc.md)。
+> （Windows 客户机另有单独文档：[win10-ltsc.md](./win10-ltsc.md) / [win7-sp1.md](./win7-sp1.md) / [win11-ltsc.md](./win11-ltsc.md)，与本文相互独立。）
 
 ---
 
-## 0. 总览与关键差异
+## 0. 总览
 
 ```
 [ Intel Mac (UTM 4.7.5) ]                         [ Ubuntu 24.04 CAPE 服务器 ]
 ─────────────────────                             ──────────────────────────
-①  UTM 装 Ubuntu 22.04 Server（关键设置同 Windows：i440FX + Legacy BIOS + IDE + e1000）
+①  UTM 装 Ubuntu 22.04 Server（关键设置：i440FX + Legacy BIOS + IDE + e1000）
 ②  cp -cR 备份 .utm 包
 ③  scp c-guest-prep-ubuntu22.sh → guest VM
 ④  guest 内 sudo bash 跑脚本（自动 shutdown）
@@ -28,37 +27,33 @@
                                                        Options: tags=linux
 ```
 
-### 与 Windows 客户机的关键差异
+### 关键决策（不要绕过）
 
-| 维度 | Win10 LTSC（[win10-ltsc.md](./win10-ltsc.md)） | Ubuntu 22.04 Server（本文） |
-|---|---|---|
-| **OS 版本** | Win10 LTSC 2021 (10.0.19044+) | **Ubuntu 22.04.x LTS Server** (kernel 5.15+) |
-| **iso 大小** | ~5 GB | **~2 GB**（server 无 GUI） |
-| **磁盘** | 40 GB | **20 GB**（实占 5-8 GB） |
-| **RAM** | 4096 MB | **2048 MB 够用** |
-| **Python** | 必须 x86 32-bit（capemon.dll 限制） | **任意 Python 3**（agent.py 无位数检查；Linux analyzer 用 strace 不注入 DLL） |
-| **agent 自启动** | 注册表 HKLM\Run + AutoAdminLogon | **systemd `cape-agent.service`** + getty@tty1 autologin |
-| **静态 IP** | netsh + reg add | **netplan YAML** |
-| **关 Defender / Tamper** | 4 项 GUI + GPO + 注册表 | **没有**（Ubuntu Server 无 AV） |
-| **关自动更新** | wuauserv + GPO | **disable apt-daily.timer + unattended-upgrades + cloud-init 一并关** |
-| **CD-ROM 三件套** | 必须（PS1 + Python.exe + agent.py） | **不需要**：直接 scp 脚本到 VM，guest 内 curl 拉 agent.py |
-| **自动化脚本** | `c-guest-prep.ps1` (UTF-8 BOM PS1) | **`c-guest-prep-ubuntu22.sh`**（bash） |
-| **客户机默认值** | cuckoo1 / 192.168.122.105 / `52:54:00:CA:FE:01` | **cuckoo2 / 192.168.122.106 / `52:54:00:CA:FE:02`** |
-| **CAPE 分析器** | `analyzer/windows/`（capemon.dll API hook） | **`analyzer/linux/`（strace + procfs）** |
-| **样本类型** | EXE/DLL/Office/JS/HTA/... | **ELF / shell / Python / .deb** |
-| **EOL** | 2026 中（Win10 LTSC 2021 支持到 2027-01） | **2027-04**（Ubuntu 22.04 标准支持） |
+- **Ubuntu 22.04.x LTS Server amd64**（不要 desktop —— GUI 对 sandbox 无价值且拖慢启动）
+- UTM 选 **Virtualize 模式**（Intel Mac HVF 加速）
+- **Legacy BIOS** 不要 UEFI（与 cape-installer 反 VM SeaBIOS 补丁链一致）
+- **i440FX 机型**（不是 q35）
+- **IDE 总线 + e1000 网卡**（与服务器侧 `c20-define-domain.sh` 模板一致；virtio 装出来的 qcow2 host 拿去可能起不来）
+- **不勾 LVM**、**不装 snap**：sandbox 用不到，反而增加 host snapshot/restore 复杂度
+- **Python 3**：Ubuntu 22.04 自带 Python 3.10，`agent.py` 直接跑（CAPE 的 Linux analyzer 走 strace + procfs，对 Python 位数无要求）
+- **agent 自启动**：systemd `cape-agent.service`，配合 getty@tty1 autologin 让冷启不停在 console login
 
-### 何时该用 Linux 客户机？
+### 何时该用 Linux 客户机
 
-| 样本类型 | 优先 Linux | 优先 Windows |
-|---|---|---|
-| Linux malware (Mirai/Mozi/XorDDoS/Gafgyt) | ⭐⭐⭐ | |
-| IoT botnet 二进制 (MIPS/ARM 用户走 emulate 模式) | ⭐⭐⭐ | |
-| Docker / k8s 攻击样本 | ⭐⭐⭐ | |
-| 跨平台勒索（如 Python/Go 编译的） | ⭐⭐⭐（行为可能不同） | ⭐⭐ |
-| 大部分恶意软件 (Win-targeted) | | ⭐⭐⭐ |
-| Office 宏 / EXE / DLL | | ⭐⭐⭐ |
-| 跨平台教学 / 比对分析 | ⭐⭐ | ⭐⭐ |
+适合：
+
+- Linux malware（Mirai / Mozi / XorDDoS / Gafgyt 等）
+- IoT botnet 二进制（MIPS/ARM 需走 emulate 模式 ~10× 慢）
+- Docker / k8s 攻击样本
+- 跨平台勒索（如 Python/Go 编译的）——行为可能跟 Windows 平台不同
+- 跨平台对比分析、教学
+
+不适合：
+
+- Windows 专属样本（EXE / DLL / Office 宏 / HTA / .NET 等）
+- Wayland / X11 漏洞 → 需要 Desktop 而非 Server（本文 §12 有说明）
+
+CAPE 在 Linux guest 内走 `analyzer/linux/` —— 用 `strace` 跟踪 syscall + procfs 内省，不做二进制注入。报告里看到的字段是 syscall 序列 / 文件操作 / 网络连接。
 
 ---
 
@@ -95,7 +90,7 @@ ISO：下载 **Ubuntu 22.04.x LTS Server amd64**（约 2 GB）到 `~/Downloads/u
 | 6. Shared Directory | 跳过 | |
 | 7. Summary | Name `Ubuntu22-CAPE`<br>**Open VM Settings：勾** | |
 
-### 2.2 Settings 7 个 pane（**与 Windows 客户机基本相同**）
+### 2.2 Settings 7 个 pane（**全部要确认**）
 
 | Pane | 设置 |
 |---|---|
@@ -151,15 +146,24 @@ sudo systemctl is-active ssh                  # active
 
 ## 3. 拍 `.utm` 备份（用 cp -cR，不用 UTM Snapshot Manager）
 
-VM 关机（`sudo shutdown -h now`），Mac 终端：
+> **背景**：UTM 4.7.5 的 Snapshot Manager 对 Virtualize 模式 VM 不稳定（常常隐藏 / 灰掉）。直接复制整个 .utm 包最稳；APFS clone（`cp -cR`）瞬间完成，不占额外磁盘。
+
+VM 关机（`sudo shutdown -h now`，必须完全关机不是 sleep）。Mac 终端：
 
 ```bash
 VM_DIR=~/Library/Containers/com.utmapp.UTM/Data/Documents
 cp -cR "$VM_DIR/Ubuntu22-CAPE.utm" "$VM_DIR/Ubuntu22-CAPE-clean.utm"
 ls -la "$VM_DIR" | grep Ubuntu22
+# 期望两条：原 .utm + clean .utm
 ```
 
-回滚同 [win10-ltsc.md §3](./win10-ltsc.md#3-拍-utm-备份用-cp--cr不用-utm-snapshot-manager)。
+**回滚方法**（万一 prep 脚本跑挂或 VM 状态被搞坏）：
+
+```bash
+rm -rf "$VM_DIR/Ubuntu22-CAPE.utm"
+cp -cR "$VM_DIR/Ubuntu22-CAPE-clean.utm" "$VM_DIR/Ubuntu22-CAPE.utm"
+killall UTM 2>/dev/null; sleep 2; open -a UTM
+```
 
 ---
 
@@ -181,7 +185,7 @@ sshpass -p 'cape123' scp -o StrictHostKeyChecking=no \
   analyst@$GUEST_DHCP_IP:/home/analyst/
 ```
 
-> **为什么不学 Win 那套 cape.iso 三件套？** 因为 Linux 默认装了 SSH，scp 一行就到 —— 三件套 ISO 是给"装完没 SSH 的 Windows"用的解决方法，Linux 用不上。
+> **为什么用 scp 而不是挂 CD-ROM ISO 传文件？** Ubuntu Server OOBE 默认装了 OpenSSH，从 Mac 一条 `scp` 就到 guest，部署期间也可以反复用 `ssh` 调试 —— 比 CD-ROM ISO 流程少一步建 ISO + 切 CD-ROM 的开销。
 
 ---
 
@@ -417,9 +421,9 @@ tags=linux
 | static IP 不通 | DHCP 拿了不同地址 | `journalctl -u systemd-networkd` 看 netplan 是否真应用了；`ip a` 看实际 IP |
 | 任务 stuck pending | cuckoo2 的 tags 在 kvm.conf 里没匹配 `tags=linux` | `grep -A3 cuckoo2 /opt/CAPEv2/conf/kvm.conf` 确认 tags 含 `linux` |
 
-### 服务器侧（同 Win10/Win7/Win11 共用）
+### 服务器侧（cape-installer Phase B 主链）
 
-详见 [win10-ltsc.md §11 服务器侧](./win10-ltsc.md#服务器侧)。
+cape-installer 主仓库的 `docs/TROUBLESHOOTING.md` 覆盖 host 端通用问题（CAPE 服务起不来、libvirt 装不上、networkd 与 virbr0 冲突等）。本文专注 guest 内问题。
 
 ---
 
@@ -449,9 +453,9 @@ UTM 在 Intel Mac 上 ARM 客户机需 emulate 模式（~10× 慢）。本仓库
 ### 为什么 prep 脚本是 bash 而不是 cloud-init seed ISO？
 
 cloud-init 是 Ubuntu 官方"无人值守"方案，但：
-- 启用 cloud-init 后它会覆盖很多手工配的东西（netplan、netconfig、defaults）—— 这也是 §4 必须显式 disable 它的原因
-- seed-ISO 流程跟 Windows 客户机的 cape.iso 一致，但对 server 没必要（已有 SSH）
-- bash 脚本透明、idempotent、易调试
+- 启用 cloud-init 后它会覆盖很多手工配的东西（netplan、netconfig、defaults）—— 这也是 §5 必须显式 disable 它的原因
+- 生成 seed-ISO 还要额外建 user-data / meta-data + 挂第二个 CD-ROM，调试成本比 bash 高
+- bash 脚本透明、idempotent、易调试；OpenSSH 已存在，scp 推一次完事
 
 ### 为什么不直接装 Ubuntu Desktop？
 
@@ -473,16 +477,16 @@ cloud-init 是 Ubuntu 官方"无人值守"方案，但：
 
 ---
 
-## 附：关键 commit 速查（与 Windows 客户机共用）
+## 附：关键 commit 速查
+
+下面的 commit 是本仓库主链上对 Linux guest 落地有直接影响的修复：
 
 | commit | 内容 |
 |---|---|
-| `b6db122` | c30 加 GUEST_PLATFORM/ARCH/TAGS 参数化（Linux guest 需要） |
-| `9717c23` | 磁盘总线 SATA → IDE |
-| `85c6d3b` | cape2.sh 跳过 Tor 段（CN GFW） |
-| `94c7e88` | 30-poetry-fix venv symlink 兜底 |
-| `5488e11` | domain XML emulator 路径 /usr/local/bin → /usr/bin |
-| `8ab25e3` | machine type pc-i440fx-noble → pc |
-| `d90cc73` | c30 guard 加 machines + snapshot 双检查 |
+| `b6db122` | c30 加 GUEST_PLATFORM / GUEST_ARCH / GUEST_TAGS 参数化（Linux guest 必需） |
+| `9717c23` | 磁盘总线 SATA → IDE（UTM 4.x GUI 不暴露 SATA） |
+| `5488e11` | domain XML emulator 路径 `/usr/local/bin` → `/usr/bin`（cape-installer 自编 QEMU 后路径冲突） |
+| `8ab25e3` | machine type `pc-i440fx-noble` → `pc`（自编 QEMU 不识 Ubuntu alias） |
+| `d90cc73` | c30 guard 加 machines + snapshot 双检查（避免误判 upstream 默认 [cuckoo1] 段为已配置） |
 
-更多见 `win10-ltsc.md` §13 附录 + git log。
+完整提交历史可在仓库根目录跑 `git log --oneline scripts/guest/ vendor/`。
