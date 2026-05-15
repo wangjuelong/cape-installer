@@ -4,6 +4,7 @@
 > Win7 已 EOL（2020-01-14），**配置上比 Win10 简单很多**——没 Tamper Protection / SmartScreen / Cortana / Telemetry 这一堆。
 >
 > 本文是 [win10-ltsc.md](./win10-ltsc.md)（Win10 LTSC）的 Win7 平行版。
+> Win11 走 [win11-ltsc.md](./win11-ltsc.md)（IoT LTSC 2024，含 TPM bypass）。
 
 ---
 

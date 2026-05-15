@@ -5,6 +5,8 @@
 >
 > **Win7 客户机** 见平行版 [win7-sp1.md](./win7-sp1.md)。
 > 配置类似但 Python 版本（3.6.8 vs 3.12.7）、PowerShell（2.0 vs 5.1）、Defender 关法等差异较大，单独维护。
+>
+> **Win11 客户机** 见 [win11-ltsc.md](./win11-ltsc.md)。复用本文 PS1 脚本，但装机+OOBE 多两个 bypass，且要额外关 Smart App Control / VBS。
 
 ---
 
