@@ -190,7 +190,7 @@ seabios-rel-1.16.3.tar.gz sha256 1c1742a315b0c2fefa9390c8a50e2ac1a6f4806e0715aec
 
 > **如果你的服务器是 headless 且你只有 Mac**——本仓库提供
 > 一条**在 Intel Mac (UTM) 构建 + scp 推服务器自动注册**的更便捷路径，按 OS 分文档：
-> [Win10 LTSC](docs/guest/win10-ltsc.md) / [Win7 SP1](docs/guest/win7-sp1.md) / [Win11 LTSC](docs/guest/win11-ltsc.md)。
+> [Win10 LTSC](docs/guest/win10-ltsc.md) / [Win7 SP1](docs/guest/win7-sp1.md) / [Win11 LTSC](docs/guest/win11-ltsc.md) / [Ubuntu 22.04 Server](docs/guest/ubuntu22-server.md)。
 >
 > 本节剩余内容是直接在服务器上 `virt-install` 的手工路径。两条路径并存，按需挑选。
 
@@ -372,6 +372,7 @@ sudo systemctl status cape       # 应该 active (running) 而不是 failed
 | `docs/guest/win10-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win10 LTSC** 客户机（cuckoo1，Phase C 替代路径） |
 | `docs/guest/win7-sp1.md` | 在 Intel Mac (UTM) 构建 **Win7 SP1 x64** 客户机（cuckoo2，Win7 specific 适配） |
 | `docs/guest/win11-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win11 IoT LTSC 2024** 客户机（cuckoo3，含 TPM/SB bypass + 24H2 OOBE 跳过） |
+| `docs/guest/ubuntu22-server.md` | 在 Intel Mac (UTM) 构建 **Ubuntu 22.04 Server** Linux 客户机（cuckoo4，systemd + netplan，bash 自动化脚本） |
 | `docs/WHY.md` | 16 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---

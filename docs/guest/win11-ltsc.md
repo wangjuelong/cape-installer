@@ -5,6 +5,8 @@
 >
 > 强烈推荐 **Windows 11 IoT Enterprise LTSC 2024** —— 不带 Copilot/Edge/Cortana，最贴近 sandbox 用途。
 > 普通 Win11 Pro 24H2 也可，但要再多跑几条 debloat 命令。
+>
+> Linux 客户机走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo4，systemd + netplan）。
 
 ---
 

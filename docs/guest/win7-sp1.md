@@ -5,6 +5,7 @@
 >
 > 本文是 [win10-ltsc.md](./win10-ltsc.md)（Win10 LTSC）的 Win7 平行版。
 > Win11 走 [win11-ltsc.md](./win11-ltsc.md)（IoT LTSC 2024，含 TPM bypass）。
+> Linux 走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo4，bash 自动化）。
 
 ---
 
