@@ -201,18 +201,30 @@ setsid env CAPE_ROOT=/opt/cape-deploy/CAPEv2 \
 
 每个 fix 都是真实踩出来的。`scripts/post-install-fix.sh` 把这 8 步打包成幂等脚本。
 
-### F1 — `/home/cape` 误属 mongodb:mongodb
+### F1 — `/home` 系列被 mongo install 错误 chown 成 mongodb:mongodb
 
 ```bash
-$ ls -ld /home/cape
-drwxr-x--- 3 mongodb mongodb 4096 May 15 02:34 /home/cape
+$ ls -ld /home /home/cape /home/rtshield
+drwxr-xr-x  4 mongodb mongodb 4096 May 15 02:34 /home
+drwxr-x---  3 mongodb mongodb 4096 May 15 02:34 /home/cape
+drwxr-x--- 21 mongodb mongodb 4096 May 15 00:56 /home/rtshield
 ```
 
-**症状**：cape services 启动后卡在 `activating` 状态。
+**症状**：
+- cape services 启动后卡在 `activating` 状态（cape 进程写不了 `/home/cape/.cache/...`）
+- SSH 登录 rtshield 立刻 stderr：`Could not chdir to home directory /home/rtshield: Permission denied` + `bash: /home/rtshield/.bashrc: Permission denied`
 
-**原因**：cape2.sh 创建 cape 用户、又装了 mongodb，某个步骤 chown 错。可能是 mongodb 包 postinst 抢了 /home/cape（mongodb 的 datadir 默认在 /var/lib 但 postinst 可能 chown 了不该 chown 的）。
+**原因**：cape2.sh 的 `install_mongo` 阶段（或 `mongodb-org` 包的 postinst 脚本）在 openKylin 上做了过宽的 chown —— 不仅染了 `/home/cape`，还把 `/home` 自身和 `/home/rtshield`（操作员账号的 home）一并染成 `mongodb:mongodb`。
 
-**修法**：`chown -R cape:cape /home/cape`。生效后 cape 进程能正常写 home 下的 poetry 缓存。
+**修法**：F1 现在做 3 件事，不是单点修 `/home/cape`：
+
+1. `chown root:root /home && chmod 0755 /home` —— 把 `/home` 自身归位
+2. 遍历 `/home/*` 子目录，按 `getent passwd <name>` 查到的真实 owner 修：`chown -R <user>:<user> /home/<user>`
+3. 兜底确认 `$CAPE_USER` 存在
+
+这样 cape / rtshield / 任何其他用户的 home 都自动修对，不再漏。
+
+> **早期版本陷阱**：post-install-fix.sh 在仓库历史早期只修 `/home/cape`，导致 `/home/rtshield` 的 SSH stderr 一直存在但因为不阻塞命令执行所以被忽略。当前版本一次性扫所有 `/home/*`。
 
 ### F2 — install_libvirt 只 locate 不 apt-install
 

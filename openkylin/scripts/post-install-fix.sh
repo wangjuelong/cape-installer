@@ -24,18 +24,43 @@ die()  { echo "[-] $*" >&2; exit 1; }
 
 [ "$EUID" -eq 0 ] || die "必须 root 跑（sudo bash $0）"
 
-# ---- F1. /home/cape 误属其他用户 → 改回 cape:cape ----
-log "F1. /home/$CAPE_USER ownership"
-if [ -d "/home/$CAPE_USER" ]; then
-  cur=$(stat -c '%U:%G' "/home/$CAPE_USER")
-  if [ "$cur" != "$CAPE_USER:$CAPE_USER" ]; then
-    chown -R "$CAPE_USER:$CAPE_USER" "/home/$CAPE_USER"
-    ok "F1 /home/$CAPE_USER → $CAPE_USER:$CAPE_USER（原 $cur）"
-  else
-    ok "F1 already $CAPE_USER:$CAPE_USER"
-  fi
+# ---- F1. /home 系列权限修复 ----
+# cape2.sh 的 install_mongo（或 mongodb-org postinst）在 openKylin 上会把
+# /home 整树误占为 mongodb:mongodb（实地坑：/home 自身 + /home/rtshield + /home/cape 都中招）。
+# 这里全面修复：(1) /home 自身 → root:root 0755；(2) 遍历 /home/* 按 passwd 修每个用户的 home。
+log "F1. /home 系列权限修复"
+
+# F1.1 /home 自身
+cur=$(stat -c '%U:%G' /home)
+if [ "$cur" != "root:root" ]; then
+  chown root:root /home
+  chmod 0755 /home
+  ok "F1 /home → root:root 0755（原 $cur）"
 else
-  warn "F1 /home/$CAPE_USER 不存在 —— cape user 还没创建？"
+  ok "F1 /home already root:root"
+fi
+
+# F1.2 /home/<each-user>：按 passwd 里的 owner 修
+for entry in /home/*; do
+  [ -d "$entry" ] || continue
+  uname=$(basename "$entry")
+  # 该 dir name 必须是 passwd 里真实用户（否则可能是误建的，跳过）
+  if ! getent passwd "$uname" >/dev/null; then
+    warn "F1 /home/$uname 无对应用户，跳过"
+    continue
+  fi
+  cur=$(stat -c '%U:%G' "$entry")
+  if [ "$cur" != "$uname:$uname" ]; then
+    chown -R "$uname:$uname" "$entry"
+    ok "F1 $entry → $uname:$uname（原 $cur）"
+  else
+    ok "F1 $entry already $uname:$uname"
+  fi
+done
+
+# F1.3 兜底：CAPE_USER 必须存在（cape2.sh 应已建）
+if ! id "$CAPE_USER" &>/dev/null; then
+  warn "F1 用户 $CAPE_USER 不存在 —— cape2.sh dependencies() 没跑过？"
 fi
 
 # ---- F2. apt-install libvirt + qemu + KVM（cape2.sh 自己不装）----
