@@ -8,6 +8,8 @@
                               （192.168.2.234 / 192.168.2.240）
 ```
 
+> **不是 Ubuntu 24.04？** 兄弟仓库 [cape-openkylin-deploy](../cape-openkylin-deploy/) 是 upstream `cape2.sh` + CN/openKylin 适配补丁的轻量部署集，已在 **openKylin 2.0 SP2（jammy 基线）** 上跑通；Phase B only，不含自编 KVM/SeaBios。本仓库（cape-installer）锁 noble 提供 Phase B+C 完整链 + 反 VM。
+
 ---
 
 ## 1. 适用范围
