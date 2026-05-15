@@ -5,7 +5,7 @@
 >
 > 本文是 [win10-ltsc.md](./win10-ltsc.md)（Win10 LTSC）的 Win7 平行版。
 > Win11 走 [win11-ltsc.md](./win11-ltsc.md)（IoT LTSC 2024，含 TPM bypass）。
-> Linux 走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo4，bash 自动化）。
+> Linux 走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo2，bash 自动化）。
 
 ---
 
@@ -19,10 +19,10 @@
 ③  Mac 上构建三件套 ISO（c-guest-prep-win7.ps1 + Python 3.6.8 x86 + agent.py）
 ④  Win7 内手工关 Defender 等（脚本里也做）→ 跑 c-guest-prep-win7.ps1
 ⑤  reboot 验证 auto-login + agent.py 自启
-⑥  关机后 c-host-export.sh -p /tmp/cuckoo2.qcow2 推送
-                                                    ⑦  改 config.env：cuckoo2 / 192.168.122.106 / MAC ...:02
-                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2
-                                                    ⑨  浏览器 :8000/submit/ 提交（tags=win7 选 cuckoo2）
+⑥  关机后 c-host-export.sh -p /tmp/cuckoo3.qcow2 推送
+                                                    ⑦  改 config.env：cuckoo3 / 192.168.122.107 / MAC ...:03
+                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo3.qcow2
+                                                    ⑨  浏览器 :8000/submit/ 提交（tags=win7 选 cuckoo3）
 ```
 
 ### 与 Win10 LTSC 的关键差异
@@ -40,7 +40,7 @@
 | **微软账户** | 强推 | 没这概念 |
 | **EOL** | 2026 仍支持 | **2020-01-14 已 EOL** |
 | **自动化脚本** | `c-guest-prep.ps1` | **`c-guest-prep-win7.ps1`**（PS 2.0 兼容版） |
-| **客户机默认值** | cuckoo1 / 192.168.122.105 / `52:54:00:CA:FE:01` | **cuckoo2 / 192.168.122.106 / `52:54:00:CA:FE:02`** |
+| **客户机默认值** | cuckoo1 / 192.168.122.105 / `52:54:00:CA:FE:01` | **cuckoo3 / 192.168.122.107 / `52:54:00:CA:FE:03`** |
 | **需要的内存** | 4096 MB | 2048 MB 即可 |
 | **磁盘大小** | 40 GB | 30 GB |
 
@@ -264,7 +264,7 @@ PowerShell.exe -ExecutionPolicy Bypass -File D:\c-guest-prep-win7.ps1 -AdminPass
 [+] agent.pyw → C:\agent.pyw
 [+] 注册 agent.pyw 自启动
 [+] 启动项: C:\Program Files (x86)\Python36-32\pythonw.exe C:\agent.pyw
-[+] 静态 IP 192.168.122.106/24 gw=192.168.122.1 dns=192.168.122.1
+[+] 静态 IP 192.168.122.107/24 gw=192.168.122.1 dns=192.168.122.1
 [+] 网卡: Local Area Connection
 [+] IP/网关/DNS 已配
 [+] 自动登录: John
@@ -291,7 +291,7 @@ python -c "import platform; print(platform.architecture())"
 :: 期望：('32bit', 'WindowsPE')
 
 ipconfig | find "IPv4"
-:: 期望：192.168.122.106
+:: 期望：192.168.122.107
 
 reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v CAPE_Agent
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon
@@ -340,7 +340,7 @@ shutdown /s /t 0
 
 ---
 
-## 7. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo2.qcow2`）
+## 7. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo3.qcow2`）
 
 VM 完全 Stopped 后：
 
@@ -353,17 +353,17 @@ echo "qcow2: $SRC"
 ls -lh "$SRC"
 # 期望 5-10 GB（Win7 比 Win10 小很多）
 
-# 注意 -p /tmp/cuckoo2.qcow2（与 cuckoo1 区分！）
+# 注意 -p /tmp/cuckoo3.qcow2（与 cuckoo1 区分！）
 bash scripts/guest/c-host-export.sh \
   -q "$SRC" \
   -s <CAPE 服务器 IP> \
   -u <服务器用户名> \
-  -p /tmp/cuckoo2.qcow2
+  -p /tmp/cuckoo3.qcow2
 ```
 
 ---
 
-## 8. 服务器端 import-guest（**改 config.env 切到 cuckoo2**）
+## 8. 服务器端 import-guest（**改 config.env 切到 cuckoo3**）
 
 ```bash
 ssh <user>@<server>
@@ -372,19 +372,19 @@ cd /opt/cape-installer
 # 1. 备份当前 config.env（cuckoo1 的）
 sudo cp config.env config.env.cuckoo1.bak
 
-# 2. 改成 cuckoo2 的参数
+# 2. 改成 cuckoo3 的参数
 sudo sed -i \
-  -e 's/^GUEST_NAME=cuckoo1/GUEST_NAME=cuckoo2/' \
-  -e 's/^GUEST_IP=192\.168\.122\.105/GUEST_IP=192.168.122.106/' \
-  -e 's/^GUEST_MAC=52:54:00:CA:FE:01/GUEST_MAC=52:54:00:CA:FE:02/' \
+  -e 's/^GUEST_NAME=cuckoo1/GUEST_NAME=cuckoo3/' \
+  -e 's/^GUEST_IP=192\.168\.122\.105/GUEST_IP=192.168.122.107/' \
+  -e 's/^GUEST_MAC=52:54:00:CA:FE:01/GUEST_MAC=52:54:00:CA:FE:03/' \
   config.env
 
 # 3. 验证
 grep -E '^GUEST_(NAME|IP|MAC)=' config.env
-# 期望：cuckoo2 / .106 / CA:FE:02
+# 期望：cuckoo3 / .107 / CA:FE:03
 
 # 4. import-guest
-sudo make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2
+sudo make import-guest GUEST_QCOW2=/tmp/cuckoo3.qcow2
 
 # 5. 装完恢复 config.env 到 cuckoo1（避免下次混淆）
 sudo cp config.env.cuckoo1.bak config.env
@@ -394,16 +394,16 @@ sudo cp config.env.cuckoo1.bak config.env
 
 ```bash
 sudo virsh list --all
-# 期望：cuckoo1 + cuckoo2 都 running
+# 期望：cuckoo1 + cuckoo3 都 running
 
 curl http://192.168.122.105:8000/status   # cuckoo1 Win10
-curl http://192.168.122.106:8000/status   # cuckoo2 Win7
+curl http://192.168.122.107:8000/status   # cuckoo3 Win7
 
 sudo journalctl -u cape -n 5 --no-pager | grep -i "loaded.*machine"
 # 期望：Loaded 2 machines
 
 sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
-# 期望：machines = cuckoo1,cuckoo2
+# 期望：machines = cuckoo1,cuckoo3
 ```
 
 ---
@@ -418,12 +418,12 @@ sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
 tags=win7
 ```
 
-CAPE 会优先选 cuckoo2（Win7）执行。
+CAPE 会优先选 cuckoo3（Win7）执行。
 
 观察：
 - 任务列表 Pending → Running → Completed
-- `sudo virsh list` 期间 cuckoo2 运行
-- 任务结束后 cuckoo2 自动回 clean 快照
+- `sudo virsh list` 期间 cuckoo3 运行
+- 任务结束后 cuckoo3 自动回 clean 快照
 
 ---
 
@@ -465,26 +465,27 @@ c-guest-prep-win7.ps1 全部用兼容写法处理。
 
 ## 11. 多客户机扩展提示
 
-### 11.1 软件 loadout 在 cuckoo2（Win7）上加 Office
+### 11.1 软件 loadout 在 cuckoo3（Win7）上加 Office
 
 CAPE 经典组合：Win7 + Office 2010/2013（兼容大量历史 DOC/XLS 宏样本）。
 
 服务器上：
 ```bash
-sudo virsh start cuckoo2
+sudo virsh start cuckoo3
 # 通过 VNC 5901 远程进 Win7 装 Office 2013（用 ISO 装）
-sudo virsh snapshot-create-as cuckoo2 office "Win7 + Office 2013"
-sudo virsh snapshot-list cuckoo2  # 期望多个 snapshot
+sudo virsh snapshot-create-as cuckoo3 office "Win7 + Office 2013"
+sudo virsh snapshot-list cuckoo3  # 期望多个 snapshot
 ```
 
 CAPE 提交时用 `tags=win7,office` 选这个快照。
 
-### 11.2 多 Win7 客户机（cuckoo3、cuckoo4...）
+### 11.2 多 Win7 客户机（cuckoo5、cuckoo6...）
 
-按本文 §1-§8 重做，改：
+cuckoo2-4 已被 Ubuntu22 / Win7（本机）/ Win11 占用。要加第二台 Win7（cuckoo5）：
+
 - `Win7-CAPE` → `Win7-2-CAPE`
-- 服务器 config.env：`GUEST_NAME=cuckoo3 / GUEST_IP=192.168.122.107 / GUEST_MAC=52:54:00:CA:FE:03`
-- Mac PS1 参数：`-AdminPassword <你设的> -GuestIP 192.168.122.107`
+- 服务器 config.env：`GUEST_NAME=cuckoo5 / GUEST_IP=192.168.122.109 / GUEST_MAC=52:54:00:CA:FE:05`
+- Mac PS1 参数：`-AdminPassword <你设的> -GuestIP 192.168.122.109`
 
 ---
 

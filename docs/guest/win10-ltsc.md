@@ -8,7 +8,7 @@
 >
 > **Win11 客户机** 见 [win11-ltsc.md](./win11-ltsc.md)。复用本文 PS1 脚本，但装机+OOBE 多两个 bypass，且要额外关 Smart App Control / VBS。
 >
-> **Linux 客户机** 见 [ubuntu22-server.md](./ubuntu22-server.md)（Ubuntu 22.04 Server，cuckoo4，bash 自动化）。
+> **Linux 客户机** 见 [ubuntu22-server.md](./ubuntu22-server.md)（Ubuntu 22.04 Server，cuckoo2，bash 自动化）。
 
 ---
 
@@ -555,7 +555,7 @@ git log --oneline 7fc1081..HEAD scripts/ vendor/
 
 ## 12. 多客户机扩展（未来）
 
-当前 plan 的 Makefile 只处理一个 GUEST_NAME（默认 cuckoo1）。要加 `cuckoo2` (Win7) / `cuckoo3` (Win10 office loadout)：
+当前 plan 的 Makefile 只处理一个 GUEST_NAME（默认 cuckoo1）。要加 `cuckoo2` (Ubuntu22) / `cuckoo3` (Win7) / `cuckoo4` (Win11) 或更多：
 
 ### 12.1 同 OS 多 loadout（推荐，复用 base VM）
 
@@ -575,12 +575,12 @@ sudo virsh snapshot-list cuckoo1   # 期望多个 snapshot
 
 ### 12.2 全新客户机（不同 OS）
 
-按本文 §1-§9 重做一遍，改：
-- `config.env`：`GUEST_NAME=cuckoo2`，`GUEST_IP=192.168.122.106`，`GUEST_MAC=52:54:00:CA:FE:02`
-- ISO 同名（cape.iso 内容不变）
-- VM 名：`Win7-CAPE` / `Win11-CAPE`
-- 服务器侧 `make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2`
-- c30 已支持追加（不会覆盖 cuckoo1）
+cuckoo2-4 已分配：cuckoo2=Ubuntu22 / cuckoo3=Win7 / cuckoo4=Win11。要加第 5+ 台（如另一个 Win10 build / Win Server / 其他 Linux distro）：
+
+- `config.env`：`GUEST_NAME=cuckoo5`，`GUEST_IP=192.168.122.109`，`GUEST_MAC=52:54:00:CA:FE:05`
+- VM 名按 OS 命名（如 `Win10-build17763-CAPE` / `Ubuntu24-CAPE`）
+- 服务器侧 `make import-guest GUEST_QCOW2=/tmp/cuckoo5.qcow2`
+- c30 已支持追加（不会覆盖现有 cuckoo1-4）
 
 ---
 

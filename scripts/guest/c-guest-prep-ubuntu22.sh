@@ -5,14 +5,14 @@
 #   2. 关 ufw / cloud-init（避免覆盖 netplan）/ snap auto-refresh
 #   3. 装 Python 3 + 拉 agent.py
 #   4. systemd unit 自启动 agent.py
-#   5. netplan 配静态 IP（默认 192.168.122.108 cuckoo4 网段）
+#   5. netplan 配静态 IP（默认 192.168.122.106 cuckoo2 网段）
 #   6. getty@tty1 autologin → analyst（防止冷启时停在 console login）
 #   7. shutdown -h now
 #
 # 用法（VM 内 root 或 sudo 跑）：
-#   sudo bash c-guest-prep-ubuntu22.sh           # 用默认 cuckoo4 参数
+#   sudo bash c-guest-prep-ubuntu22.sh           # 用默认 cuckoo2 参数
 #   sudo bash c-guest-prep-ubuntu22.sh \
-#     --guest-ip 192.168.122.108 \
+#     --guest-ip 192.168.122.106 \
 #     --user analyst
 #
 # 不同 cuckoo 用 --guest-ip 调整网段；Windows 客户机走 c-guest-prep[-win7].ps1。
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # ---- 默认参数 ----
-GUEST_IP="${GUEST_IP:-192.168.122.108}"
+GUEST_IP="${GUEST_IP:-192.168.122.106}"
 GATEWAY_IP="${GATEWAY_IP:-192.168.122.1}"
 PREFIX="${PREFIX:-24}"
 DNS_SERVER="${DNS_SERVER:-192.168.122.1}"

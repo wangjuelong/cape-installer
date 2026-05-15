@@ -5,7 +5,7 @@
 # 用途：
 #   1. 关 Win7 Defender / Update / UAC / 防火墙 / 蓝屏自动重启 / 错误报告
 #   2. 装 Python 3.6.8 x86 + 拉 agent.py + 改 .pyw + 注册启动项
-#   3. 配静态 IP (默认 192.168.122.106 cuckoo2 网段；Win10 用 .105)
+#   3. 配静态 IP (默认 192.168.122.107 cuckoo3 网段；Win10 用 .105)
 #   4. 配自动登录（HKLM\Winlogon REG_SZ 1）
 #   5. shutdown /s /t 0
 #
@@ -16,7 +16,7 @@
 
 [CmdletBinding()]
 param(
-  [string]$GuestIP = '192.168.122.106',
+  [string]$GuestIP = '192.168.122.107',
   [string]$GatewayIP = '192.168.122.1',
   [int]$Prefix = 24,
   [string]$DnsServer = '192.168.122.1',
@@ -224,9 +224,9 @@ Write-Host '================================================================' -F
 Write-Host ''
 Write-Host '下一步：'
 Write-Host '  1. 60s 后 VM 自动关机（或加 -NoShutdown 跳过）'
-Write-Host '  2. 在 Mac 上跑 c-host-export.sh -p /tmp/cuckoo2.qcow2 推送服务器'
-Write-Host '  3. 服务器上 sudo make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2'
-Write-Host '     （记得改 config.env：GUEST_NAME=cuckoo2 / GUEST_IP=192.168.122.106 / GUEST_MAC=52:54:00:CA:FE:02）'
+Write-Host '  2. 在 Mac 上跑 c-host-export.sh -p /tmp/cuckoo3.qcow2 推送服务器'
+Write-Host '  3. 服务器上 sudo make import-guest GUEST_QCOW2=/tmp/cuckoo3.qcow2'
+Write-Host '     （记得改 config.env：GUEST_NAME=cuckoo3 / GUEST_IP=192.168.122.107 / GUEST_MAC=52:54:00:CA:FE:03）'
 Write-Host ''
 
 # ---- 14. 关机 ----

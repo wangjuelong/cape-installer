@@ -19,11 +19,11 @@
 ③  scp c-guest-prep-ubuntu22.sh → guest VM
 ④  guest 内 sudo bash 跑脚本（自动 shutdown）
 ⑤  reboot 验证 cape-agent.service 自启 + :8000 listen
-⑥  关机后 c-host-export.sh -p /tmp/cuckoo4.qcow2 推送
-                                                    ⑦  改 config.env：cuckoo4 / 192.168.122.108 / MAC ...:04
+⑥  关机后 c-host-export.sh -p /tmp/cuckoo2.qcow2 推送
+                                                    ⑦  改 config.env：cuckoo2 / 192.168.122.106 / MAC ...:02
                                                        GUEST_PLATFORM=linux GUEST_ARCH=x64
                                                        GUEST_TAGS=ubuntu22,linux,x64
-                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo4.qcow2
+                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2
                                                     ⑨  浏览器 :8000/submit/ 提交 ELF/.sh
                                                        Options: tags=linux
 ```
@@ -43,7 +43,7 @@
 | **关自动更新** | wuauserv + GPO | **disable apt-daily.timer + unattended-upgrades + cloud-init 一并关** |
 | **CD-ROM 三件套** | 必须（PS1 + Python.exe + agent.py） | **不需要**：直接 scp 脚本到 VM，guest 内 curl 拉 agent.py |
 | **自动化脚本** | `c-guest-prep.ps1` (UTF-8 BOM PS1) | **`c-guest-prep-ubuntu22.sh`**（bash） |
-| **客户机默认值** | cuckoo1 / 192.168.122.105 / `52:54:00:CA:FE:01` | **cuckoo4 / 192.168.122.108 / `52:54:00:CA:FE:04`** |
+| **客户机默认值** | cuckoo1 / 192.168.122.105 / `52:54:00:CA:FE:01` | **cuckoo2 / 192.168.122.106 / `52:54:00:CA:FE:02`** |
 | **CAPE 分析器** | `analyzer/windows/`（capemon.dll API hook） | **`analyzer/linux/`（strace + procfs）** |
 | **样本类型** | EXE/DLL/Office/JS/HTA/... | **ELF / shell / Python / .deb** |
 | **EOL** | 2026 中（Win10 LTSC 2021 支持到 2027-01） | **2027-04**（Ubuntu 22.04 标准支持） |
@@ -218,7 +218,7 @@ sshpass -p 'cape123' ssh -o StrictHostKeyChecking=no analyst@$GUEST_DHCP_IP \
 [✓] agent.py: 31876 bytes
 [+] systemd: cape-agent.service
 [✓] cape-agent.service enabled（重启后自启）
-[+] netplan 静态 IP 192.168.122.108/24 gw=192.168.122.1
+[+] netplan 静态 IP 192.168.122.106/24 gw=192.168.122.1
 [✓] netplan written（NIC=enp1s0）
 [+] autologin tty1 → analyst
 [✓] tty1 autologin 配好
@@ -239,7 +239,7 @@ sshpass -p 'cape123' ssh analyst@$GUEST_DHCP_IP "
   cat /etc/netplan/01-cape.yaml
   ip a | grep 'inet '
 "
-# 期望：Python 3.10.x / enabled / 含 192.168.122.108 / addresses 含 .108
+# 期望：Python 3.10.x / enabled / 含 192.168.122.106 / addresses 含 .106
 ```
 
 让 60s 倒计时跑完 → VM 自动 `shutdown -h now`。
@@ -256,18 +256,18 @@ VM 关机后再启动一次（普通启动，不再跑 prep 脚本）：
 3. **不在 console 停在 login**（getty@tty1 autologin → analyst）
 4. 30 秒内 systemd 启 `cape-agent.service`，:8000 listen
 
-通过 host 端验证（VM 现在是静态 IP 192.168.122.108）：
+通过 host 端验证（VM 现在是静态 IP 192.168.122.106）：
 
 ```bash
-# host 上（CAPE 服务器或 Mac，能路由到 192.168.122.108）
-sshpass -p 'cape123' ssh -o StrictHostKeyChecking=no analyst@192.168.122.108 "
+# host 上（CAPE 服务器或 Mac，能路由到 192.168.122.106）
+sshpass -p 'cape123' ssh -o StrictHostKeyChecking=no analyst@192.168.122.106 "
   systemctl is-active cape-agent
   ss -tlnp 2>/dev/null | grep :8000
 "
 # 期望：active / LISTEN ... python3 ...
 
 # 直接 curl agent
-curl -s http://192.168.122.108:8000/status | head -5
+curl -s http://192.168.122.106:8000/status | head -5
 # 期望：JSON 含 "status": "..."
 ```
 
@@ -280,7 +280,7 @@ OK 后 `sudo shutdown -h now`。
 
 ---
 
-## 7. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo4.qcow2`）
+## 7. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo2.qcow2`）
 
 VM 完全 Stopped 后：
 
@@ -293,30 +293,30 @@ echo "qcow2: $SRC"
 ls -lh "$SRC"
 # 期望 5-8 GB
 
-# 注意 -p /tmp/cuckoo4.qcow2（与 cuckoo1/2/3 区分！）
+# 注意 -p /tmp/cuckoo2.qcow2（与 cuckoo1/cuckoo3/cuckoo4 的 qcow2 区分！）
 bash scripts/guest/c-host-export.sh \
   -q "$SRC" \
   -s <CAPE 服务器 IP> \
   -u <服务器用户名> \
-  -p /tmp/cuckoo4.qcow2
+  -p /tmp/cuckoo2.qcow2
 ```
 
 ---
 
-## 8. 服务器端 import-guest（**改 config.env 切到 cuckoo4 + linux 元数据**）
+## 8. 服务器端 import-guest（**改 config.env 切到 cuckoo2 + linux 元数据**）
 
 ```bash
 ssh <user>@<server>
 cd /opt/cape-installer
 
 # 1. 备份当前 config.env
-sudo cp config.env config.env.before-cuckoo4.bak
+sudo cp config.env config.env.before-cuckoo2.bak
 
-# 2. 改成 cuckoo4 + Linux 参数
+# 2. 改成 cuckoo2 + Linux 参数
 sudo sed -i \
-  -e 's/^GUEST_NAME=.*/GUEST_NAME=cuckoo4/' \
-  -e 's/^GUEST_IP=.*/GUEST_IP=192.168.122.108/' \
-  -e 's/^GUEST_MAC=.*/GUEST_MAC=52:54:00:CA:FE:04/' \
+  -e 's/^GUEST_NAME=.*/GUEST_NAME=cuckoo2/' \
+  -e 's/^GUEST_IP=.*/GUEST_IP=192.168.122.106/' \
+  -e 's/^GUEST_MAC=.*/GUEST_MAC=52:54:00:CA:FE:02/' \
   -e 's/^GUEST_PLATFORM=.*/GUEST_PLATFORM=linux/' \
   -e 's/^GUEST_ARCH=.*/GUEST_ARCH=x64/' \
   -e 's/^GUEST_TAGS=.*/GUEST_TAGS=ubuntu22,linux,x64/' \
@@ -325,23 +325,23 @@ sudo sed -i \
 
 # 3. 验证
 grep -E '^GUEST_' config.env
-# 期望：cuckoo4 / .108 / CA:FE:04 / linux / x64 / ubuntu22,linux,x64 / 2048
+# 期望：cuckoo2 / .106 / CA:FE:02 / linux / x64 / ubuntu22,linux,x64 / 2048
 
 # 4. import-guest
-sudo make import-guest GUEST_QCOW2=/tmp/cuckoo4.qcow2
+sudo make import-guest GUEST_QCOW2=/tmp/cuckoo2.qcow2
 
 # 5. 装完恢复 config.env
-sudo cp config.env.before-cuckoo4.bak config.env
+sudo cp config.env.before-cuckoo2.bak config.env
 ```
 
-`c30-register-kvm-conf.sh` 已参数化 GUEST_PLATFORM / GUEST_ARCH / GUEST_TAGS（commit b6db122），会把 cuckoo4 段写成：
+`c30-register-kvm-conf.sh` 已参数化 GUEST_PLATFORM / GUEST_ARCH / GUEST_TAGS（commit b6db122），会把 cuckoo2 段写成：
 
 ```ini
-[cuckoo4]
-label = cuckoo4
+[cuckoo2]
+label = cuckoo2
 platform = linux
 arch = x64
-ip = 192.168.122.108
+ip = 192.168.122.106
 tags = ubuntu22,linux,x64
 snapshot = clean
 ```
@@ -350,18 +350,18 @@ snapshot = clean
 
 ```bash
 sudo virsh list --all
-# 期望：cuckoo1 (Win10) / cuckoo2 (Win7) / cuckoo3 (Win11) / cuckoo4 (Ubuntu22)
+# 期望：cuckoo1 (Win10) / cuckoo2 (Ubuntu22) / cuckoo3 (Win7) / cuckoo4 (Win11)
 
-curl http://192.168.122.105:8000/status   # Win10
-curl http://192.168.122.106:8000/status   # Win7
-curl http://192.168.122.107:8000/status   # Win11
-curl http://192.168.122.108:8000/status   # Ubuntu22
+curl http://192.168.122.105:8000/status   # cuckoo1 Win10
+curl http://192.168.122.106:8000/status   # cuckoo2 Ubuntu22
+curl http://192.168.122.107:8000/status   # cuckoo3 Win7
+curl http://192.168.122.108:8000/status   # cuckoo4 Win11
 
 sudo journalctl -u cape -n 5 --no-pager | grep -i "loaded.*machine"
 # 期望：Loaded 4 machines
 
 sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
-# 期望：machines = cuckoo1,cuckoo2,cuckoo3,cuckoo4
+# 期望：machines = cuckoo1,cuckoo2,cuckoo3,cuckoo4 （顺序按 import-guest 调用顺序，无强约束）
 ```
 
 ---
@@ -376,12 +376,12 @@ sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
 tags=linux
 ```
 
-或更具体：`tags=ubuntu22,linux`。CAPE 优先选 cuckoo4。
+或更具体：`tags=ubuntu22,linux`。CAPE 优先选 cuckoo2。
 
 观察：
 - 任务列表 Pending → Running → Completed
-- `sudo virsh list` 期间 cuckoo4 running
-- 任务结束后 cuckoo4 自动回 clean 快照
+- `sudo virsh list` 期间 cuckoo2 running
+- 任务结束后 cuckoo2 自动回 clean 快照
 - 报告里会看到 strace 跟踪的 syscalls / 文件操作 / 网络连接
 
 > **测试样本想要无害但行为丰富**：编一个 `int main(){ system("ls /etc; curl -s example.com; sleep 5;"); }` 这种 C 程序，CAPE 会抓到 execve+网络 socket 等行为。
@@ -415,7 +415,7 @@ tags=linux
 | reboot 后 console 停在 login | autologin override 没生效 | `sudo systemctl daemon-reload && sudo systemctl restart getty@tty1` |
 | :8000 没 listen | agent.py 进程没跑 | `systemctl status cape-agent` → 看错误；手工 `python3 /home/analyst/agent.py` 看 import |
 | static IP 不通 | DHCP 拿了不同地址 | `journalctl -u systemd-networkd` 看 netplan 是否真应用了；`ip a` 看实际 IP |
-| 任务 stuck pending | cuckoo4 的 tags 在 kvm.conf 里没匹配 `tags=linux` | `grep -A3 cuckoo4 /opt/CAPEv2/conf/kvm.conf` 确认 tags 含 `linux` |
+| 任务 stuck pending | cuckoo2 的 tags 在 kvm.conf 里没匹配 `tags=linux` | `grep -A3 cuckoo2 /opt/CAPEv2/conf/kvm.conf` 确认 tags 含 `linux` |
 
 ### 服务器侧（同 Win10/Win7/Win11 共用）
 
@@ -427,7 +427,7 @@ tags=linux
 
 ### 11.1 同 OS 不同 loadout（Docker、Java、apache、nginx ...）
 
-`virsh start cuckoo4` → SSH 进去装额外软件 → `virsh snapshot-create-as cuckoo4 docker "with Docker"`。
+`virsh start cuckoo2` → SSH 进去装额外软件 → `virsh snapshot-create-as cuckoo2 docker "with Docker"`。
 
 样本提交时 `tags=ubuntu22,docker` 选这个快照。
 

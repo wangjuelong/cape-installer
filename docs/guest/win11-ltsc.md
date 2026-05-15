@@ -6,7 +6,7 @@
 > 强烈推荐 **Windows 11 IoT Enterprise LTSC 2024** —— 不带 Copilot/Edge/Cortana，最贴近 sandbox 用途。
 > 普通 Win11 Pro 24H2 也可，但要再多跑几条 debloat 命令。
 >
-> Linux 客户机走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo4，systemd + netplan）。
+> Linux 客户机走 [ubuntu22-server.md](./ubuntu22-server.md)（22.04 Server，cuckoo2，systemd + netplan）。
 
 ---
 
@@ -21,10 +21,10 @@
 ③  Mac 上构建三件套 ISO（c-guest-prep.ps1 + Python x86 + agent.py）
 ④  Win11 内手工关 4 项 Defender + Smart App Control → 跑 c-guest-prep.ps1
 ⑤  reboot 验证 auto-login + agent.py 自启
-⑥  关机后 c-host-export.sh -p /tmp/cuckoo3.qcow2 推送
-                                                    ⑦  改 config.env：cuckoo3 / 192.168.122.107 / MAC ...:03
-                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo3.qcow2
-                                                    ⑨  浏览器 :8000/submit/ 提交（tags=win11 选 cuckoo3）
+⑥  关机后 c-host-export.sh -p /tmp/cuckoo4.qcow2 推送
+                                                    ⑦  改 config.env：cuckoo4 / 192.168.122.108 / MAC ...:04
+                                                    ⑧  sudo make import-guest GUEST_QCOW2=/tmp/cuckoo4.qcow2
+                                                    ⑨  浏览器 :8000/submit/ 提交（tags=win11 选 cuckoo4）
 ```
 
 ### 与 Win10 LTSC 的关键差异
@@ -41,7 +41,7 @@
 | **PowerShell 默认** | 5.1 | 5.1（同） |
 | **Python** | 3.12.7 x86 | **3.12.7 x86**（同） |
 | **自动化脚本** | `c-guest-prep.ps1` | **直接复用 `c-guest-prep.ps1`**（兼容；本文 §5.4 列差异处理） |
-| **客户机默认值** | cuckoo1 / .105 / `...:01` | **cuckoo3 / 192.168.122.107 / `52:54:00:CA:FE:03`** |
+| **客户机默认值** | cuckoo1 / .105 / `...:01` | **cuckoo4 / 192.168.122.108 / `52:54:00:CA:FE:04`** |
 | **需要的内存** | 4096 MB | **4096 MB 起步**（更低会被 OOBE 拒） |
 | **磁盘大小** | 40 GB | **64 GB 起步**（24H2 占用更大） |
 
@@ -346,17 +346,17 @@ Get-ChildItem D:\
 # UDF 应显示长名：c-guest-prep.ps1 / python-3.12.7.exe / agent.py
 
 # AdminPassword 必传
-D:\c-guest-prep.ps1 -AdminPassword cape123 -GuestIP 192.168.122.107
+D:\c-guest-prep.ps1 -AdminPassword cape123 -GuestIP 192.168.122.108
 ```
 
-> **注意** `-GuestIP 192.168.122.107` —— Win11 是 cuckoo3，不是 cuckoo1 的 .105！
+> **注意** `-GuestIP 192.168.122.108` —— Win11 是 cuckoo4，不是 cuckoo1 的 .105！
 
 ### 6.1 预期完整输出（关键行）
 
 与 Win10 [§6.1](./win10-ltsc.md#61-预期完整输出关键行) 完全相同；只有 IP 不同。最后两段：
 
 ```
-[+] 配静态 IP 192.168.122.107/24 gw=192.168.122.1
+[+] 配静态 IP 192.168.122.108/24 gw=192.168.122.1
 [✓] 静态 IP 配置完成
 [+] 配自动登录: John
 [✓] AutoAdminLogon=1, DefaultUserName=John
@@ -379,7 +379,7 @@ python -c "import platform; print(platform.architecture())"
 # ('32bit', 'WindowsPE')
 
 ipconfig | Select-String "IPv4"
-# 192.168.122.107
+# 192.168.122.108
 
 # Win11 特有：再确认 SAC + VBS 都 OFF
 Get-MpComputerStatus | Select IsTamperProtected, RealTimeProtectionEnabled
@@ -415,7 +415,7 @@ OK → `shutdown /s /t 0` 关机。
 
 ---
 
-## 8. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo3.qcow2`）
+## 8. Mac 推送 qcow2 到 CAPE 服务器（注意 `-p /tmp/cuckoo4.qcow2`）
 
 VM 完全 Stopped 后：
 
@@ -428,60 +428,60 @@ echo "qcow2: $SRC"
 ls -lh "$SRC"
 # 期望 15-25 GB（Win11 24H2 比 Win10 大）
 
-# 注意 -p /tmp/cuckoo3.qcow2（与 cuckoo1/2 区分！）
+# 注意 -p /tmp/cuckoo4.qcow2（与 cuckoo1/2/3 的 qcow2 区分！）
 bash scripts/guest/c-host-export.sh \
   -q "$SRC" \
   -s <CAPE 服务器 IP> \
   -u <服务器用户名> \
-  -p /tmp/cuckoo3.qcow2
+  -p /tmp/cuckoo4.qcow2
 ```
 
 ---
 
-## 9. 服务器端 import-guest（**改 config.env 切到 cuckoo3**）
+## 9. 服务器端 import-guest（**改 config.env 切到 cuckoo4**）
 
 ```bash
 ssh <user>@<server>
 cd /opt/cape-installer
 
 # 1. 备份当前 config.env
-sudo cp config.env config.env.before-cuckoo3.bak
+sudo cp config.env config.env.before-cuckoo4.bak
 
-# 2. 改成 cuckoo3 的参数
+# 2. 改成 cuckoo4 的参数
 sudo sed -i \
-  -e 's/^GUEST_NAME=.*/GUEST_NAME=cuckoo3/' \
-  -e 's/^GUEST_IP=.*/GUEST_IP=192.168.122.107/' \
-  -e 's/^GUEST_MAC=.*/GUEST_MAC=52:54:00:CA:FE:03/' \
+  -e 's/^GUEST_NAME=.*/GUEST_NAME=cuckoo4/' \
+  -e 's/^GUEST_IP=.*/GUEST_IP=192.168.122.108/' \
+  -e 's/^GUEST_MAC=.*/GUEST_MAC=52:54:00:CA:FE:04/' \
   -e 's/^GUEST_TAGS=.*/GUEST_TAGS=win11,x64,cape/' \
   -e 's/^GUEST_RAM_MB=.*/GUEST_RAM_MB=4096/' \
   config.env
 
 # 3. 验证
 grep -E '^GUEST_(NAME|IP|MAC|TAGS|RAM_MB)=' config.env
-# 期望：cuckoo3 / .107 / CA:FE:03 / win11,x64,cape / 4096
+# 期望：cuckoo4 / .108 / CA:FE:04 / win11,x64,cape / 4096
 
 # 4. import-guest
-sudo make import-guest GUEST_QCOW2=/tmp/cuckoo3.qcow2
+sudo make import-guest GUEST_QCOW2=/tmp/cuckoo4.qcow2
 
 # 5. 装完恢复
-sudo cp config.env.before-cuckoo3.bak config.env
+sudo cp config.env.before-cuckoo4.bak config.env
 ```
 
 3 台都活：
 
 ```bash
 sudo virsh list --all
-# cuckoo1 / cuckoo2 / cuckoo3
+# cuckoo1 / cuckoo3 / cuckoo4
 
 curl http://192.168.122.105:8000/status   # Win10
-curl http://192.168.122.106:8000/status   # Win7
-curl http://192.168.122.107:8000/status   # Win11
+curl http://192.168.122.107:8000/status   # Win7
+curl http://192.168.122.108:8000/status   # Win11
 
 sudo journalctl -u cape -n 5 --no-pager | grep -i "loaded.*machine"
 # 期望：Loaded 3 machines
 
 sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
-# 期望：machines = cuckoo1,cuckoo2,cuckoo3
+# 期望：machines = cuckoo1,cuckoo3,cuckoo4
 ```
 
 ---
@@ -496,12 +496,12 @@ sudo grep '^machines' /opt/CAPEv2/conf/kvm.conf
 tags=win11
 ```
 
-CAPE 优先选 cuckoo3（Win11）执行。
+CAPE 优先选 cuckoo4（Win11）执行。
 
 观察：
 - 任务列表 Pending → Running → Completed
-- `sudo virsh list` 期间 cuckoo3 运行
-- 任务结束后 cuckoo3 自动回 clean 快照
+- `sudo virsh list` 期间 cuckoo4 运行
+- 任务结束后 cuckoo4 自动回 clean 快照
 
 ---
 
@@ -534,17 +534,17 @@ CAPE 优先选 cuckoo3（Win11）执行。
 
 ## 12. 多客户机扩展提示
 
-### 12.1 cuckoo1+2+3 三机并存（典型 CAPE 部署）
+### 12.1 cuckoo1+2+3+4 四机并存（典型 CAPE 部署）
 
-通过 §9 的 sed 改 `config.env` 后跑 `import-guest`，c30-register-kvm-conf.sh 用 **追加** 写法（commit b6db122 + d90cc73），不会覆盖之前的 cuckoo1/cuckoo2 段。
+通过 §9 的 sed 改 `config.env` 后跑 `import-guest`，c30-register-kvm-conf.sh 用 **追加** 写法（commit b6db122 + d90cc73），不会覆盖之前的 cuckoo1-3 段。
 
 提交样本时按 tags 选机器：
 
 | tags | 选哪台 |
 |---|---|
 | `win10ltsc` 或 `win10` | cuckoo1 |
-| `win7` | cuckoo2 |
-| `win11` | cuckoo3 |
+| `win7` | cuckoo3 |
+| `win11` | cuckoo4 |
 | `office`（如装了）| 对应快照 |
 | 不填 | CAPE 轮询/优先级算法选 |
 
@@ -552,9 +552,9 @@ CAPE 优先选 cuckoo3（Win11）执行。
 
 服务器上：
 ```bash
-sudo virsh start cuckoo3
+sudo virsh start cuckoo4
 # VNC 5901 进 Win11，装 Office 2024 LTSC
-sudo virsh snapshot-create-as cuckoo3 office "Win11 + Office 2024"
+sudo virsh snapshot-create-as cuckoo4 office "Win11 + Office 2024"
 ```
 
 样本提交用 `tags=win11,office` 选这快照。

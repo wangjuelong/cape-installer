@@ -370,9 +370,9 @@ sudo systemctl status cape       # 应该 active (running) 而不是 failed
 | `docs/UNINSTALL.md` | 卸载手册（10 个 u-stage 详解 + 备份恢复） |
 | `docs/TROUBLESHOOTING.md` | 已知问题 + 故障排查指引 |
 | `docs/guest/win10-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win10 LTSC** 客户机（cuckoo1，Phase C 替代路径） |
-| `docs/guest/win7-sp1.md` | 在 Intel Mac (UTM) 构建 **Win7 SP1 x64** 客户机（cuckoo2，Win7 specific 适配） |
-| `docs/guest/win11-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win11 IoT LTSC 2024** 客户机（cuckoo3，含 TPM/SB bypass + 24H2 OOBE 跳过） |
-| `docs/guest/ubuntu22-server.md` | 在 Intel Mac (UTM) 构建 **Ubuntu 22.04 Server** Linux 客户机（cuckoo4，systemd + netplan，bash 自动化脚本） |
+| `docs/guest/win7-sp1.md` | 在 Intel Mac (UTM) 构建 **Win7 SP1 x64** 客户机（cuckoo3，Win7 specific 适配） |
+| `docs/guest/win11-ltsc.md` | 在 Intel Mac (UTM) 构建 **Win11 IoT LTSC 2024** 客户机（cuckoo4，含 TPM/SB bypass + 24H2 OOBE 跳过） |
+| `docs/guest/ubuntu22-server.md` | 在 Intel Mac (UTM) 构建 **Ubuntu 22.04 Server** Linux 客户机（cuckoo2，systemd + netplan，bash 自动化脚本） |
 | `docs/WHY.md` | 16 个关键设计决策（ADR）+ 实地验证发现 |
 
 ---
