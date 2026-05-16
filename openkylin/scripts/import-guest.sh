@@ -118,8 +118,10 @@ echo "  LOG:      $LOG"            | tee -a "$LOG"
 # ================================================================
 step "c10 qcow2 校验 + 拷到 $IMG_DIR/$GUEST_NAME.qcow2"
 qemu-img info "$QCOW2" >/dev/null 2>&1 || die "c10 qcow2 不是合法 qemu image"
-fmt=$(qemu-img info --output=json "$QCOW2" | grep -oE '"format": *"[a-z0-9]+"' | head -1 | cut -d'"' -f4)
-[ "$fmt" = "qcow2" ] || warn "c10 image 格式 = $fmt（非 qcow2，可继续但 host 端 snapshot 行为可能不同）"
+# `qemu-img info --output=json` 的 JSON 里有 "format" / "format-specific" / 顶层 "file" 等多字段，
+# 简单 grep 容易抓错位置。直接 parse 文本格式的 "file format:" 行最可靠。
+fmt=$(qemu-img info "$QCOW2" 2>/dev/null | awk -F': ' '/^file format/{gsub(/^ +/, "", $2); print $2; exit}')
+[ "$fmt" = "qcow2" ] || warn "c10 image 格式 = '$fmt'（非 qcow2，可继续但 host 端 snapshot 行为可能不同）"
 backing=$(qemu-img info "$QCOW2" 2>/dev/null | awk -F': ' '/backing file/ {print $2}')
 [ -z "$backing" ] || die "c10 qcow2 有 backing file ($backing) —— 不是独立副本；先 qemu-img convert -O qcow2"
 if [ -s "$QCOW2.sha256" ]; then

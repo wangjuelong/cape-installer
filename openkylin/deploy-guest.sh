@@ -39,9 +39,23 @@ REMOTE_QCOW2="/tmp/$(basename "$LOCAL_QCOW2")"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ssh_run()  { sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$TARGET" "$@"; }
-scp_to()   { sshpass -p "$SSH_PASS" scp  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$@"; }
+# -O 强制旧 SCP 协议（避开 OpenSSH ≥9.0 默认 SFTP 在某些 non-tty/long-transfer 场景下静默失败的坑）。
+scp_to()   { sshpass -p "$SSH_PASS" scp -O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$@"; }
 
 log() { echo; echo "================================================================"; echo "[+] $*"; echo "================================================================"; }
+
+# 校验远端文件大小与本地一致 —— scp 假成功的兜底
+verify_remote_size() {
+  local local_path="$1" remote_path="$2"
+  local local_size remote_size
+  local_size=$(stat -f '%z' "$local_path" 2>/dev/null || stat -c '%s' "$local_path")
+  remote_size=$(ssh_run "stat -c '%s' '$remote_path' 2>/dev/null || echo 0")
+  if [ "$local_size" != "$remote_size" ]; then
+    echo "[-] scp 假成功！local=$local_size remote=$remote_size $remote_path" >&2
+    return 1
+  fi
+  echo "[✓] scp 校验通过: $remote_path ($local_size bytes)"
+}
 
 log "Step 1/3: scp import-guest.sh + domain.xml.tmpl → $TARGET:/opt/cape-deploy/"
 ssh_run "mkdir -p /opt/cape-deploy/scripts /opt/cape-deploy/logs"
@@ -51,7 +65,11 @@ ssh_run "chmod +x /opt/cape-deploy/import-guest.sh"
 
 log "Step 2/3: scp qcow2 → $TARGET:$REMOTE_QCOW2  ($(du -h "$LOCAL_QCOW2" | cut -f1))"
 scp_to "$LOCAL_QCOW2" "$TARGET:$REMOTE_QCOW2"
-# 如果本地有 .sha256 配套文件，一并推送
+verify_remote_size "$LOCAL_QCOW2" "$REMOTE_QCOW2" || {
+  echo "[-] qcow2 传输不完整，aborting。手工诊断：sshpass scp -O -v ..." >&2
+  exit 2
+}
+# 如果本地有 .sha256 配套文件，一并推送（小文件，不强校验）
 [ -s "$LOCAL_QCOW2.sha256" ] && scp_to "$LOCAL_QCOW2.sha256" "$TARGET:$REMOTE_QCOW2.sha256" || true
 
 log "Step 3/3: ssh sudo bash /opt/cape-deploy/import-guest.sh"

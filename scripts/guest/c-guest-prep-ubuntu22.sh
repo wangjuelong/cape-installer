@@ -172,21 +172,24 @@ systemctl enable cape-agent.service
 ok "cape-agent.service enabled（重启后自启）"
 
 # ---- 10. netplan 静态 IP ----
-step "netplan 静态 IP $GUEST_IP/$PREFIX gw=$GATEWAY_IP"
+# 用 `match: name: "en*"` 通配 —— UTM 装机时 NIC 名是 enp1s0，导出 qcow2 到 libvirt host
+# 后 NIC 名变 ens3 / eth0（取决于 PCI slot 分配），按名字 hardcode 会让 netplan 不匹配 →
+# 静态 IP 不应用 → 网络死。`en*` 覆盖所有以太网 NIC 命名习惯（enpXsY / ensZ / eth0）。
+step "netplan 静态 IP $GUEST_IP/$PREFIX gw=$GATEWAY_IP（用 en* 通配匹配 NIC）"
 # 先清理 /etc/netplan/*.yaml 里的 DHCP 配置
 ls /etc/netplan/*.yaml >/dev/null 2>&1 && {
   mkdir -p /etc/netplan/backup
   mv /etc/netplan/*.yaml /etc/netplan/backup/ 2>/dev/null || true
 }
-# 探测 NIC 名（22.04 server 通常是 enp1s0 / ens3 / eth0）
-NIC=$(ip -o link show | awk -F': ' '!/lo|virbr|docker/{print $2; exit}' | sed 's/@.*//')
-[ -n "$NIC" ] || die "没找到非 loopback 网卡"
 cat > /etc/netplan/01-cape.yaml <<EOF
 network:
   version: 2
   renderer: networkd
   ethernets:
-    $NIC:
+    cape-nic:
+      match:
+        name: "en*"
+      set-name: eth0
       dhcp4: no
       addresses: [$GUEST_IP/$PREFIX]
       routes:
@@ -197,7 +200,7 @@ network:
 EOF
 chmod 0600 /etc/netplan/01-cape.yaml
 netplan apply 2>&1 | head -5 || warn "netplan apply 报错，重启后再生效"
-ok "netplan written（NIC=$NIC）"
+ok "netplan written（match: name: en* + set-name eth0）"
 
 # ---- 11. autologin on tty1（agent.py 走 systemd，autologin 是为冷启便利不强必需）----
 step "autologin tty1 → $ANALYST_USER"
